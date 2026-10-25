@@ -137,6 +137,7 @@ local defaults = {
         widgetX = 0,
         widgetY = 200,
         widgetScale = 1.0,
+        showWidget = true,
         showMinimap = true,
         minimapAngle = 250,
         fontFace = "Fonts\\FRIZQT__.TTF",
@@ -596,6 +597,7 @@ local function PrintHelp()
     ns.Print("  /ee20 snooze [seconds]")
     ns.Print("  /ee20 preset [20|30|45|60|custom]")
     ns.Print("  /ee20 log")
+    ns.Print("  /ee20 widget | show  - show or hide the floating countdown widget")
     ns.Print("  /ee20 minimap  - show or hide the minimap button")
     ns.Print("  /ee20 panic  - force-clear the break overlay if it gets stuck")
     ns.Print("  /ee20 test  - 5 second test cycle")
@@ -657,6 +659,15 @@ local function SlashHandler(msg)
         end
     elseif cmd == "log" then
         if ns.ToggleLog then ns.ToggleLog() end
+    elseif cmd == "widget" or cmd == "show" then
+        if ns.db then
+            local p = ns.db.profile
+            p.showWidget = not p.showWidget
+            if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
+            ns.Fire("SettingsChanged")
+            ns.Fire("ConfigRefresh")
+            ns.Print("Floating countdown widget " .. (p.showWidget and "shown" or "hidden") .. ".")
+        end
     elseif cmd == "minimap" then
         if ns.db then
             local p = ns.db.profile

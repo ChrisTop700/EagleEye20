@@ -14,6 +14,16 @@ local tip
 local taxiPrompt = false
 local pulse = 0
 
+local function SetSolidColor(tex, r, g, b, a)
+    if not tex then return end
+    if tex.SetColorTexture then
+        tex:SetColorTexture(r, g, b, a or 1)
+    else
+        tex:SetTexture("Interface\\Buttons\\WHITE8X8")
+        tex:SetVertexColor(r, g, b, a or 1)
+    end
+end
+
 local function ApplyFont(fontString, size)
     if not ns.db then return end
     local p = ns.db.profile
@@ -25,13 +35,20 @@ end
 local function MakeTip()
     tip = ns.NewFrame("Frame", "EagleEye20WidgetTip", UIParent)
     tip:SetFrameStrata("TOOLTIP")
-    tip:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    tip:SetBackdropColor(0.08, 0.08, 0.10, 0.95)
-    tip:SetBackdropBorderColor(0.25, 0.25, 0.30, 1.0)
+    if tip.SetBackdrop then
+        pcall(tip.SetBackdrop, tip, {
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = 1,
+        })
+        pcall(tip.SetBackdropColor, tip, 0.08, 0.08, 0.10, 0.95)
+        pcall(tip.SetBackdropBorderColor, tip, 0.25, 0.25, 0.30, 1.0)
+    end
+    local bg = tip:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(tip)
+    SetSolidColor(bg, 0.08, 0.08, 0.10, 0.95)
+    tip.bg = bg
+
     tip.text = tip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     tip.text:SetPoint("LEFT", tip, "LEFT", 6, 0)
     tip.text:SetPoint("RIGHT", tip, "RIGHT", -6, 0)
@@ -56,13 +73,20 @@ local function MakeButton(parent, label, width, height, tooltipText, onClick)
     local b = ns.NewFrame("Button", nil, parent)
     b:SetWidth(width)
     b:SetHeight(height)
-    b:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    b:SetBackdropColor(0.16, 0.16, 0.20, 1.0)
-    b:SetBackdropBorderColor(0.30, 0.30, 0.35, 1.0)
+    if b.SetBackdrop then
+        pcall(b.SetBackdrop, b, {
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = 1,
+        })
+        pcall(b.SetBackdropColor, b, 0.16, 0.16, 0.20, 1.0)
+        pcall(b.SetBackdropBorderColor, b, 0.30, 0.30, 0.35, 1.0)
+    end
+
+    local bg = b:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(b)
+    SetSolidColor(bg, 0.16, 0.16, 0.20, 1.0)
+    b.bg = bg
 
     b.label = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     b.label:SetPoint("CENTER", b, "CENTER", 0, 0)
@@ -70,18 +94,32 @@ local function MakeButton(parent, label, width, height, tooltipText, onClick)
     b.label:SetTextColor(0.85, 0.85, 0.90)
 
     b:SetScript("OnEnter", function(self)
-        self:SetBackdropColor(0.24, 0.24, 0.29, 1.0)
+        if self.SetBackdropColor then pcall(self.SetBackdropColor, self, 0.24, 0.24, 0.29, 1.0) end
+        SetSolidColor(self.bg, 0.24, 0.24, 0.29, 1.0)
         if tooltipText and tooltipText ~= "" then
             ShowTip(self, tooltipText)
         end
     end)
     b:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(0.16, 0.16, 0.20, 1.0)
+        if self.SetBackdropColor then pcall(self.SetBackdropColor, self, 0.16, 0.16, 0.20, 1.0) end
+        SetSolidColor(self.bg, 0.16, 0.16, 0.20, 1.0)
         HideTip()
     end)
     b:SetScript("OnClick", onClick)
 
     return b
+end
+
+local function SetWidgetBorderColor(r, g, b, a)
+    if not f then return end
+    if f.SetBackdropBorderColor then
+        pcall(f.SetBackdropBorderColor, f, r, g, b, a or 1)
+    end
+    if f.borders then
+        for _, line in ipairs(f.borders) do
+            SetSolidColor(line, r, g, b, a or 1)
+        end
+    end
 end
 
 local function CreateWidget()
@@ -93,14 +131,37 @@ local function CreateWidget()
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
     f:SetClampedToScreen(true)
-    f:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 },
-    })
-    f:SetBackdropColor(0.08, 0.08, 0.10, 0.88)
-    f:SetBackdropBorderColor(0.25, 0.25, 0.30, 1.0)
+    if f.SetBackdrop then
+        pcall(f.SetBackdrop, f, {
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = 1,
+            insets = { left = 0, right = 0, top = 0, bottom = 0 },
+        })
+        pcall(f.SetBackdropColor, f, 0.08, 0.08, 0.10, 0.88)
+        pcall(f.SetBackdropBorderColor, f, 0.25, 0.25, 0.30, 1.0)
+    end
+
+    local bg = f:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(f)
+    SetSolidColor(bg, 0.08, 0.08, 0.10, 0.90)
+    f.bg = bg
+
+    local borders = {}
+    local function MakeLine(p1, r1, p2, r2, w, h)
+        local line = f:CreateTexture(nil, "OVERLAY")
+        line:SetPoint(p1, f, r1, 0, 0)
+        line:SetPoint(p2, f, r2, 0, 0)
+        if w then line:SetWidth(w) end
+        if h then line:SetHeight(h) end
+        SetSolidColor(line, 0.25, 0.25, 0.30, 1.0)
+        table.insert(borders, line)
+    end
+    MakeLine("TOPLEFT", "TOPLEFT", "TOPRIGHT", "TOPRIGHT", nil, 1)
+    MakeLine("BOTTOMLEFT", "BOTTOMLEFT", "BOTTOMRIGHT", "BOTTOMRIGHT", nil, 1)
+    MakeLine("TOPLEFT", "TOPLEFT", "BOTTOMLEFT", "BOTTOMLEFT", 1, nil)
+    MakeLine("TOPRIGHT", "TOPRIGHT", "BOTTOMRIGHT", "BOTTOMRIGHT", 1, nil)
+    f.borders = borders
     f:Hide()
 
     f:SetScript("OnDragStart", function(self)
@@ -127,10 +188,10 @@ local function CreateWidget()
     headerIcon:SetTexture(ns.MEDIA .. "IconRound")
     headerIcon:SetWidth(11)
     headerIcon:SetHeight(11)
-    headerIcon:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3)
+    headerIcon:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -4)
 
     headerText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    headerText:SetPoint("TOPLEFT", f, "TOPLEFT", 15, -4)
+    headerText:SetPoint("TOPLEFT", f, "TOPLEFT", 17, -4)
     headerText:SetText("EAGLE EYE")
     headerText:SetFont("Fonts\\FRIZQT__.TTF", 7, "")
     headerText:SetTextColor(0.62, 0.63, 0.68, 0.9)
@@ -162,14 +223,13 @@ local function CreateWidget()
     f.countText = countText
 
     barTrack = f:CreateTexture(nil, "ARTWORK")
-    barTrack:SetTexture("Interface\\Buttons\\WHITE8X8")
-    barTrack:SetVertexColor(0.25, 0.25, 0.30, 0.35)
+    SetSolidColor(barTrack, 0.25, 0.25, 0.30, 0.35)
     barTrack:SetHeight(2)
     barTrack:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 1, 1)
     barTrack:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
 
     barFill = f:CreateTexture(nil, "OVERLAY")
-    barFill:SetTexture("Interface\\Buttons\\WHITE8X8")
+    SetSolidColor(barFill, 0, 0.8, 0.6, 1)
     barFill:SetHeight(2)
     barFill:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 1, 1)
     barFill:SetWidth(WIDTH - 2)
@@ -204,10 +264,10 @@ local function CreateWidget()
             pulse = pulse + elapsed
             local color = ns.COLORS[ns.READY_WAITING]
             local alpha = 0.45 + 0.55 * math.abs(math.sin(pulse * 3))
-            f:SetBackdropBorderColor(color.r, color.g, color.b, alpha)
+            SetWidgetBorderColor(color.r, color.g, color.b, alpha)
         else
             pulse = 0
-            f:SetBackdropBorderColor(0.25, 0.25, 0.30, 1.0)
+            SetWidgetBorderColor(0.25, 0.25, 0.30, 1.0)
         end
     end)
 end
@@ -215,17 +275,22 @@ end
 local function ApplyLayout()
     if not f or not ns.db then return end
     local p = ns.db.profile
+    if not p.enabled or (p.showWidget == false) then
+        f:Hide()
+        return
+    end
     f:ClearAllPoints()
-    f:SetPoint(p.widgetPoint, UIParent, p.widgetRelPoint, p.widgetX, p.widgetY)
+    f:SetPoint(p.widgetPoint or "CENTER", UIParent, p.widgetRelPoint or "CENTER", p.widgetX or 0, p.widgetY or 200)
     f:SetScale(p.widgetScale or 1)
     ApplyFont(countText, p.fontSize)
+    f:Show()
 end
 
 local function Update()
     if not f or not ns.db then return end
     local p = ns.db.profile
 
-    if not p.enabled then
+    if not p.enabled or (p.showWidget == false) then
         f:Hide()
         return
     end
@@ -250,7 +315,7 @@ local function Update()
     end
     fraction = math.max(0, math.min(1, fraction))
     barFill:SetWidth(math.max(1, math.floor((WIDTH - BAR_INSET * 2) * fraction + 0.5)))
-    barFill:SetVertexColor(color.r, color.g, color.b, 1)
+    SetSolidColor(barFill, color.r, color.g, color.b, 1)
 
     pauseBtn.label:SetText(state == ns.PAUSED and ">" or "II")
 

@@ -26,8 +26,8 @@ from PIL import Image, ImageDraw
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEXTURES = os.path.join(ROOT, "EagleEye20", "Textures")
 
-ICON_SVG = os.path.join(ROOT, "Eagle Eye 20 Icon.svg")
-LOGO_SVG = os.path.join(ROOT, "Eagle Eye 20 Logo.svg")
+ICON_SVG = os.path.join(ROOT, "assets", "Eagle Eye 20 Icon.svg")
+LOGO_SVG = os.path.join(ROOT, "assets", "Eagle Eye 20 Logo.svg")
 
 # Share of the texture width the eye artwork fills inside the round button.
 ROUND_FIT = 0.90

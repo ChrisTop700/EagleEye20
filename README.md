@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Eagle%20Eye%2020%20Logo.svg" alt="Eagle Eye 20 Logo" width="320"/>
+  <img src="assets/Logo.png" alt="Eagle Eye 20 Logo" width="280"/>
 </p>
 
 <h1 align="center">Eagle Eye 20/20/20 (<code>EagleEye20</code>)</h1>

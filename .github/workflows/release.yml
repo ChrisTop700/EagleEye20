@@ -1,0 +1,48 @@
+name: Release Addon
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Release Tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package EagleEye20 Addon
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          # Zip the EagleEye20 directory preserving folder structure for WoW Interface/AddOns
+          zip -r "EagleEye20-${TAG}.zip" EagleEye20 -x "*.git*"
+          cp "EagleEye20-${TAG}.zip" EagleEye20.zip
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: EagleEye20 ${{ steps.vars.outputs.tag }}
+          files: |
+            EagleEye20-${{ steps.vars.outputs.tag }}.zip
+            EagleEye20.zip
+          generate_release_notes: true

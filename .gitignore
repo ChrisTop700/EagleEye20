@@ -13,3 +13,9 @@ desktop.ini
 # Packaged builds
 *.zip
 dist/
+
+# Python / Conda environments
+.conda/
+__pycache__/
+*.py[cod]
+

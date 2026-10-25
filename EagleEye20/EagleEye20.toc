@@ -1,13 +1,20 @@
-## Interface: 30300
+## Interface: 16001
 ## Title: Eagle Eye |cff00cc9920/20/20|r
 ## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WoW Forever.
 ## Author: Chris
 ## Version: 1.0.0
+## Category: Combat
 ## SavedVariables: EagleEye20DB
+## IconTexture: Interface\AddOns\EagleEye20\Textures\Icon
+## AddonCompartmentFunc: EagleEye20_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: EagleEye20_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: EagleEye20_OnAddonCompartmentLeave
 
+Bindings.xml
 Core.lua
 Events.lua
 UI_Widget.lua
+UI_Minimap.lua
 UI_Blackout.lua
 UI_Log.lua
 UI_Config.lua

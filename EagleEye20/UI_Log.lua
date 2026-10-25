@@ -6,6 +6,7 @@ local ROW_HEIGHT = 14
 
 local f, statsText, scroll
 local rows = {}
+local scrollOffset = 0
 
 local EVENT_COLORS = {
     BREAK_COMPLETED = "00cc99",
@@ -49,12 +50,10 @@ local function Refresh()
     ))
 
     local logs = ns.db.logs
-    local offset = FauxScrollFrame_GetOffset(scroll)
     local total = #logs
     local maxOffset = math.max(0, total - VISIBLE_ROWS)
-    if offset > maxOffset then
-        offset = maxOffset
-    end
+    local offset = math.min(math.max(0, scrollOffset), maxOffset)
+    scrollOffset = offset
 
     for i = 1, VISIBLE_ROWS do
         local index = total - (offset + i) + 1
@@ -68,11 +67,19 @@ local function Refresh()
         end
     end
 
-    FauxScrollFrame_Update(scroll, total, VISIBLE_ROWS, ROW_HEIGHT)
+    -- The rows are plain font strings and the offset is ours, so the scroll
+    -- bar only needs to report movement. Range APIs differ between builds, so
+    -- they are all optional.
+    if scroll.SetScrollRange then
+        pcall(scroll.SetScrollRange, scroll, maxOffset * ROW_HEIGHT, ROW_HEIGHT)
+    end
+    if scroll.SetVerticalScroll then
+        pcall(scroll.SetVerticalScroll, scroll, offset * ROW_HEIGHT)
+    end
 end
 
 local function CreateWindow()
-    f = CreateFrame("Frame", "EagleEye20LogWindow", UIParent)
+    f = ns.NewFrame("Frame", "EagleEye20LogWindow", UIParent)
     f:SetWidth(PANEL_WIDTH)
     f:SetHeight(PANEL_HEIGHT)
     f:SetFrameStrata("HIGH")
@@ -98,12 +105,18 @@ local function CreateWindow()
         self:StopMovingOrSizing()
     end)
 
+    local icon = f:CreateTexture(nil, "ARTWORK")
+    icon:SetTexture(ns.MEDIA .. "Icon")
+    icon:SetWidth(16)
+    icon:SetHeight(16)
+    icon:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -8)
+
     local header = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    header:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -10)
+    header:SetPoint("TOPLEFT", f, "TOPLEFT", 33, -10)
     header:SetText("EAGLE EYE 20/20/20  -  LOG")
     header:SetTextColor(0.0, 0.8, 0.6)
 
-    local close = CreateFrame("Button", nil, f)
+    local close = ns.NewFrame("Button", nil, f)
     close:SetWidth(20)
     close:SetHeight(20)
     close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -6, -6)
@@ -150,15 +163,23 @@ local function CreateWindow()
         rows[i] = row
     end
 
-    scroll = CreateFrame("ScrollFrame", "EagleEye20LogScroll", f, "FauxScrollFrameTemplate")
+    scroll = CreateFrame("ScrollFrame", "EagleEye20LogScroll", f, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -98)
     scroll:SetWidth(PANEL_WIDTH - 20)
     scroll:SetHeight(VISIBLE_ROWS * ROW_HEIGHT)
+    scroll:EnableMouseWheel(true)
     scroll:SetScript("OnVerticalScroll", function(self, offset)
-        FauxScrollFrame_OnVerticalScroll(self, offset, ROW_HEIGHT, Refresh)
+        scrollOffset = math.floor(offset / ROW_HEIGHT + 0.5)
+        Refresh()
+    end)
+    scroll:SetScript("OnMouseWheel", function(self, delta)
+        local total = ns.db and #ns.db.logs or 0
+        local maxOffset = math.max(0, total - VISIBLE_ROWS)
+        scrollOffset = math.max(0, math.min(maxOffset, scrollOffset - delta))
+        Refresh()
     end)
 
-    local clearBtn = CreateFrame("Button", nil, f)
+    local clearBtn = ns.NewFrame("Button", nil, f)
     clearBtn:SetWidth(70)
     clearBtn:SetHeight(20)
     clearBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 12, 10)
@@ -174,7 +195,15 @@ local function CreateWindow()
     clearText:SetText("Clear log")
     clearBtn:SetScript("OnClick", function()
         if not ns.db then return end
-        ns.db.logs = {}
+        if wipe then
+            wipe(ns.db.logs)
+        elseif table.wipe then
+            table.wipe(ns.db.logs)
+        else
+            for k in pairs(ns.db.logs) do
+                ns.db.logs[k] = nil
+            end
+        end
         ns.Log("LOGS_CLEARED", "History cleared")
         Refresh()
     end)

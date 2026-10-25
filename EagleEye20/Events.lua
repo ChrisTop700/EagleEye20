@@ -14,13 +14,11 @@ local function Announce(msg, requireEndFlag)
     if requireEndFlag and not p.announceEnd then return end
     if not p.announceParty then return end
 
-    local inRaid = GetNumRaidMembers() > 0
-    local inParty = GetNumPartyMembers() > 0
     local channel
-    if inRaid then
+    if ns.InRaid() then
         if not p.announceRaid then return end
         channel = "RAID"
-    elseif inParty then
+    elseif ns.InGroup() then
         channel = "PARTY"
     else
         return
@@ -68,10 +66,20 @@ local function HandleAFKEnd()
     ns.Fire("AFKEnd")
 end
 
+local function SyncAFK()
+    local afk = ns.IsAFK()
+    if afk and not wasAfk then
+        HandleAFKStart()
+    elseif not afk and wasAfk then
+        HandleAFKEnd()
+    end
+end
+
 local function CheckTaxi()
     if not ns.db then return end
     local p = ns.db.profile
-    if UnitOnTaxi("player") and p.promptOnTaxi and p.enabled then
+    local onTaxi = UnitOnTaxi and UnitOnTaxi("player")
+    if onTaxi and p.promptOnTaxi and p.enabled then
         if not taxiPrompted and ns.state == ns.RUNNING and ns.timeRemaining < 300 then
             taxiPrompted = true
             ns.Log("TAXI_PROMPT", "Flight path boarded with under 5 minutes remaining")
@@ -83,11 +91,13 @@ local function CheckTaxi()
     end
 end
 
-frame:RegisterEvent("PLAYER_REGEN_DISABLED")
-frame:RegisterEvent("PLAYER_REGEN_ENABLED")
-frame:RegisterEvent("PLAYER_FLAGS_CHANGED")
-frame:RegisterEvent("PLAYER_CONTROL_LOST")
-frame:RegisterEvent("PLAYER_CONTROL_GAINED")
+ns.SafeRegister(frame, "PLAYER_REGEN_DISABLED")
+ns.SafeRegister(frame, "PLAYER_REGEN_ENABLED")
+ns.SafeRegister(frame, "PLAYER_ENTERING_WORLD")
+-- PLAYER_FLAGS_CHANGED is not delivered by every client build; a one second
+-- poll covers AFK state there without needing the event at all.
+ns.SafeRegister(frame, "PLAYER_FLAGS_CHANGED")
+ns.SafeRegister(frame, "PLAYER_LOGIN")
 
 frame:SetScript("OnEvent", function(_, event, arg1)
     if event == "PLAYER_REGEN_DISABLED" then
@@ -102,20 +112,11 @@ frame:SetScript("OnEvent", function(_, event, arg1)
         end
     elseif event == "PLAYER_FLAGS_CHANGED" then
         if arg1 == "player" or arg1 == nil then
-            local afk = UnitIsAFK("player") and true or false
-            if afk and not wasAfk then
-                HandleAFKStart()
-            elseif not afk and wasAfk then
-                HandleAFKEnd()
-            end
+            SyncAFK()
         end
-    elseif event == "PLAYER_CONTROL_LOST" then
+    elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_LOGIN" then
+        SyncAFK()
         CheckTaxi()
-    elseif event == "PLAYER_CONTROL_GAINED" then
-        if taxiPrompted then
-            taxiPrompted = false
-            ns.Fire("TaxiEnd")
-        end
     end
 end)
 
@@ -125,6 +126,8 @@ frame:SetScript("OnUpdate", function(_, elapsed)
     if accum < 1 then return end
     accum = 0
     if not ns.db then return end
+
+    SyncAFK()
 
     if wasAfk and afkSince and not afkResetDone then
         local p = ns.db.profile
@@ -138,7 +141,7 @@ frame:SetScript("OnUpdate", function(_, elapsed)
         end
     end
 
-    if taxiPrompted or (UnitOnTaxi("player") and ns.state == ns.RUNNING) then
+    if taxiPrompted or (UnitOnTaxi and UnitOnTaxi("player") and ns.state == ns.RUNNING) then
         CheckTaxi()
     end
 end)

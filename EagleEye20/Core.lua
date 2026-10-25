@@ -1,7 +1,68 @@
 local AddonName, ns = ...
 
+_G[AddonName] = ns
+
+BINDING_HEADER_EAGLEEYE20 = "Eagle Eye 20/20/20"
+BINDING_NAME_EAGLEEYE20_CONFIRMSAFE = "Confirm Safe / Start Break"
+BINDING_NAME_EAGLEEYE20_SNOOZE = "Snooze Pending Break"
+BINDING_NAME_EAGLEEYE20_PAUSERESUME = "Pause / Resume Timer"
+
 ns.name = AddonName
 ns.version = "1.0.0"
+ns.MEDIA = "Interface\\AddOns\\EagleEye20\\Textures\\"
+
+-- The client is a modern (Forever, interface 16001) build. Frames only get
+-- SetBackdrop when they are created with the BackdropTemplate mixin, the old
+-- InterfaceOptions panel container is gone, and group/AFK helpers changed.
+function ns.Backdrop()
+    return BackdropTemplateMixin and "BackdropTemplate" or nil
+end
+
+function ns.NewFrame(kind, name, parent)
+    local f = CreateFrame(kind, name, parent, ns.Backdrop())
+    -- Clients without the backdrop mixin have no SetBackdrop at all; shim the
+    -- methods so shared code can call them unconditionally.
+    if not f.SetBackdrop then
+        f.SetBackdrop = function() end
+        f.SetBackdropColor = function() end
+        f.SetBackdropBorderColor = function() end
+    end
+    return f
+end
+
+function ns.SafeRegister(frame, event)
+    if not event then return false end
+    return (pcall(frame.RegisterEvent, frame, event))
+end
+
+function ns.InRaid()
+    if IsInRaid then return IsInRaid() and true or false end
+    if GetNumRaidMembers then return GetNumRaidMembers() > 0 end
+    return false
+end
+
+function ns.InGroup()
+    if IsInGroup then return IsInGroup() and true or false end
+    if GetNumPartyMembers then return GetNumPartyMembers() > 0 end
+    return false
+end
+
+function ns.IsAFK()
+    if UnitIsAFK then return UnitIsAFK("player") and true or false end
+    if UnitIsDND then return UnitIsDND("player") and true or false end
+    return false
+end
+
+local function Atan2(y, x)
+    if math.atan2 then return math.atan2(y, x) end
+    if math.atan then return math.atan(y, x) end
+    return 0
+end
+ns.Atan2 = Atan2
+
+function ns.RotatePoint(cx, cy, x, y)
+    return math.deg(Atan2(y - cy, x - cx)) % 360
+end
 
 ns.RUNNING = "RUNNING"
 ns.PREPARE = "PREPARE"
@@ -76,6 +137,8 @@ local defaults = {
         widgetX = 0,
         widgetY = 200,
         widgetScale = 1.0,
+        showMinimap = true,
+        minimapAngle = 250,
         fontFace = "Fonts\\FRIZQT__.TTF",
         fontSize = 16,
         fontOutline = "OUTLINE",
@@ -208,7 +271,12 @@ end
 function ns.PlaySoundFile(path)
     if not ns.db or not ns.db.profile.soundEnabled then return end
     if not path or path == "" then return end
-    PlaySoundFile(path)
+    if PlaySoundFile then
+        local ok = pcall(PlaySoundFile, path, "Master")
+        if not ok then
+            pcall(PlaySoundFile, path)
+        end
+    end
 end
 
 function ns.Log(event, detail)
@@ -528,11 +596,17 @@ local function PrintHelp()
     ns.Print("  /ee20 snooze [seconds]")
     ns.Print("  /ee20 preset [20|30|45|60|custom]")
     ns.Print("  /ee20 log")
+    ns.Print("  /ee20 minimap  - show or hide the minimap button")
+    ns.Print("  /ee20 panic  - force-clear the break overlay if it gets stuck")
     ns.Print("  /ee20 test  - 5 second test cycle")
 end
 
+local function Trim(s)
+    return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", ""))
+end
+
 local function HandlePresetCommand(arg)
-    arg = strtrim(arg or "")
+    arg = Trim(arg)
     if arg == "" then
         local p = ns.db.profile
         local label = p.preset == "CUSTOM" and "CUSTOM" or tostring(p.preset)
@@ -549,15 +623,13 @@ local function SlashHandler(msg)
         ns.Print("Still loading, try again in a moment.")
         return
     end
-    local full = strtrim(msg or "")
+    local full = Trim(msg)
     local cmd, rest = string.match(full, "^(%S*)%s*(.-)$")
     cmd = (cmd or ""):lower()
 
     if cmd == "" then
         if ns.OpenConfig then
             ns.OpenConfig()
-        else
-            InterfaceOptionsFrame_OpenToCategory("Eagle Eye 20/20/20")
         end
     elseif cmd == "start" then
         if ns.ResumeTimer() then
@@ -585,8 +657,25 @@ local function SlashHandler(msg)
         end
     elseif cmd == "log" then
         if ns.ToggleLog then ns.ToggleLog() end
+    elseif cmd == "minimap" then
+        if ns.db then
+            local p = ns.db.profile
+            p.showMinimap = not p.showMinimap
+            if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
+            ns.Fire("SettingsChanged")
+            ns.Fire("ConfigRefresh")
+            ns.Print("Minimap button " .. (p.showMinimap and "shown" or "hidden") .. ".")
+        end
     elseif cmd == "test" then
         ns.TestBreak()
+    elseif cmd == "panic" or cmd == "dismiss" then
+        -- Recovery hatch: the break overlay covers the screen and blocks
+        -- clicks by design, so provide a way to force-clear it.
+        if ns.DismissBlackout then ns.DismissBlackout() end
+        if ns.state == ns.RESTING then
+            ns.AbortRest("Panic command")
+        end
+        ns.Print("Overlay cleared.")
     elseif cmd == "preset" then
         HandlePresetCommand(rest)
     elseif cmd == "help" then

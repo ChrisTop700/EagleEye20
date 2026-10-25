@@ -5,7 +5,7 @@ local EXPANDED_HEIGHT = 64
 local BAR_INSET = 2
 
 local f
-local countText, headerText, combatText
+local countText, headerText, combatText, headerIcon
 local barTrack, barFill
 local pauseBtn, resetBtn, logBtn
 local safeBtn, snooze1Btn, snooze2Btn
@@ -23,7 +23,7 @@ local function ApplyFont(fontString, size)
 end
 
 local function MakeTip()
-    tip = CreateFrame("Frame", "EagleEye20WidgetTip", UIParent)
+    tip = ns.NewFrame("Frame", "EagleEye20WidgetTip", UIParent)
     tip:SetFrameStrata("TOOLTIP")
     tip:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8X8",
@@ -53,7 +53,7 @@ local function HideTip()
 end
 
 local function MakeButton(parent, label, width, height, tooltipText, onClick)
-    local b = CreateFrame("Button", nil, parent)
+    local b = ns.NewFrame("Button", nil, parent)
     b:SetWidth(width)
     b:SetHeight(height)
     b:SetBackdrop({
@@ -85,7 +85,7 @@ local function MakeButton(parent, label, width, height, tooltipText, onClick)
 end
 
 local function CreateWidget()
-    f = CreateFrame("Frame", "EagleEye20Widget", UIParent)
+    f = ns.NewFrame("Frame", "EagleEye20Widget", UIParent)
     f:SetWidth(WIDTH)
     f:SetHeight(HEIGHT)
     f:SetFrameStrata("HIGH")
@@ -123,8 +123,14 @@ local function CreateWidget()
     end)
     f:SetScript("OnLeave", HideTip)
 
+    headerIcon = f:CreateTexture(nil, "ARTWORK")
+    headerIcon:SetTexture(ns.MEDIA .. "IconRound")
+    headerIcon:SetWidth(11)
+    headerIcon:SetHeight(11)
+    headerIcon:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3)
+
     headerText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    headerText:SetPoint("TOPLEFT", f, "TOPLEFT", 7, -5)
+    headerText:SetPoint("TOPLEFT", f, "TOPLEFT", 15, -4)
     headerText:SetText("EAGLE EYE")
     headerText:SetFont("Fonts\\FRIZQT__.TTF", 7, "")
     headerText:SetTextColor(0.62, 0.63, 0.68, 0.9)

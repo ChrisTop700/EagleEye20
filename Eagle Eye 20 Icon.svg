@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
-    <clipPath id="smallEyeClip">
+    <clipPath id="smallEyeClip1">
       <path d="M 16 128 Q 128 28 240 128 Q 128 228 16 128 Z" />
     </clipPath>
   </defs>
@@ -9,26 +9,29 @@
   <rect x="6" y="6" width="244" height="244" rx="24" fill="#101016" stroke="#383846" stroke-width="8" />
 
   <!-- Clipped Horizon Scene -->
-  <g clip-path="url(#smallEyeClip)">
+  <g clip-path="url(#smallEyeClip1)">
     <rect x="16" y="28" width="224" height="200" fill="#0d2a2c" />
-    <!-- Bold Amber Sun -->
-    <circle cx="128" cy="122" r="48" fill="#f2a61a" />
-    <!-- Bold Eagle Silhouette (Slightly higher to clear the reticle) -->
-    <path d="M 96 96 Q 112 82 128 98 Q 144 82 160 96 Q 142 92 128 108 Q 114 92 96 96 Z" fill="#101016" />
+    
+    <!-- Centered Amber Sun -->
+    <circle cx="128" cy="128" r="50" fill="#f2a61a" />
+    
     <!-- High-Contrast Mountains -->
-    <polygon points="10,210 85,125 140,170 190,115 246,210" fill="#12181f" />
-  </g>
+    <polygon points="10,215 82,138 135,178 192,128 246,215" fill="#12181f" />
 
-  <!-- Bold 4-Corner Target Box (Thickened for 64x64 / 32x32 readability) -->
-  <g fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="square" opacity="0.92">
-    <!-- Top-Left Bracket -->
-    <path d="M 102 122 L 102 108 L 116 108" />
-    <!-- Top-Right Bracket -->
-    <path d="M 140 108 L 154 108 L 154 122" />
-    <!-- Bottom-Left Bracket -->
-    <path d="M 102 142 L 102 156 L 116 156" />
-    <!-- Bottom-Right Bracket -->
-    <path d="M 140 156 L 154 156 L 154 142" />
+    <!-- Soaring Eagle (Sized to sit cleanly INSIDE the tighter target box) -->
+    <path d="M 102 118 Q 115 105 128 120 Q 141 105 154 118 Q 140 115 128 129 Q 116 115 102 118 Z" fill="#101016" />
+
+    <!-- Tightened 4-Corner Target Box (72x64, well inside the eye curves & reticle ticks) -->
+    <g fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linecap="square" opacity="0.95">
+      <!-- Top-Left -->
+      <path d="M 92 112 L 92 96 L 108 96" />
+      <!-- Top-Right -->
+      <path d="M 148 96 L 164 96 L 164 112" />
+      <!-- Bottom-Left -->
+      <path d="M 92 144 L 92 160 L 108 160" />
+      <!-- Bottom-Right -->
+      <path d="M 148 160 L 164 160 L 164 144" />
+    </g>
   </g>
 
   <!-- Thick Teal Eye Border & Reticle Ticks -->

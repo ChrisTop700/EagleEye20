@@ -340,7 +340,7 @@ end
 local function CreateMainPanel()
     local panel, refs = CreatePage("EagleEye20MainOptions", "Eagle Eye 20/20/20")
 
-    local page = ScrollablePanel(panel, 440)
+    local page = ScrollablePanel(panel, 490)
 
     -- Header (emblem, title, subtitle on left; compact logo on right)
     local emblem = page:CreateTexture(nil, "ARTWORK")
@@ -361,8 +361,8 @@ local function CreateMainPanel()
     -- Sized and positioned inside header band so it never overlaps controls
     local logo = page:CreateTexture(nil, "ARTWORK")
     logo:SetTexture(ns.MEDIA .. "Logo")
-    logo:SetWidth(50)
-    logo:SetHeight(50)
+    logo:SetWidth(48)
+    logo:SetHeight(48)
     logo:SetPoint("TOPRIGHT", page, "TOPRIGHT", -20, -6)
     logo:SetAlpha(0.90)
 
@@ -373,18 +373,19 @@ local function CreateMainPanel()
     local COL_W = 165
     local DROP_W = 145
 
-    -- Row 1 (y = -66): Main Status Checkboxes
-    MakeCheckbox(page, refs, "Enabled", "Enable timer", col1_x, -66,
+    -- SECTION 1: Status & Behavior Checkboxes
+    -- Row 1 (y = -64)
+    MakeCheckbox(page, refs, "Enabled", "Enable timer", col1_x, -64,
         function() return Profile().enabled end,
         function(v) ns.SetEnabled(v) end,
         "Turns the whole addon on or off.")
 
-    MakeCheckbox(page, refs, "AFK", "Auto-reset after 60s AFK", col2_x, -66,
+    MakeCheckbox(page, refs, "AFK", "Auto-reset after 60s AFK", col2_x, -64,
         function() return Profile().autoResetOnAFK end,
         SetProfileValue("autoResetOnAFK"),
         "Resets the work timer if the player has been flagged AFK for a minute or more.")
 
-    MakeCheckbox(page, refs, "ShowWidget", "Show floating countdown widget", col3_x, -66,
+    MakeCheckbox(page, refs, "ShowWidget", "Show floating countdown widget", col3_x, -64,
         function() return Profile().showWidget ~= false end,
         function(v)
             if not ns.db then return end
@@ -394,52 +395,24 @@ local function CreateMainPanel()
         end,
         "Displays the compact draggable floating countdown timer frame on your screen.")
 
-    -- Row 2 (y = -98): Presets & Behavior
-    MakeDropdown(page, refs, "Preset", "Timer preset (work / distance / rest)", col1_x, -98, DROP_W,
-        PRESET_ITEMS,
-        function() return Profile().preset end,
-        function(v) ns.SetPreset(v) end)
-
-    MakeCheckbox(page, refs, "Taxi", "Prompt on flight paths", col2_x, -98,
-        function() return Profile().promptOnTaxi end,
-        SetProfileValue("promptOnTaxi"),
-        "Shows a Take Break Now button when flying with under 5 minutes left.")
-
-    MakeCheckbox(page, refs, "Inn", "Auto-start while resting", col2_x, -124,
+    -- Row 2 (y = -92)
+    MakeCheckbox(page, refs, "Inn", "Auto-start while resting", col1_x, -92,
         function() return Profile().autoStartInInn end,
         SetProfileValue("autoStartInInn"),
         "Starts the blackout automatically when the break is due inside an inn or city.")
 
-    MakeCheckbox(page, refs, "Locked", "Lock widget position", col3_x, -98,
+    MakeCheckbox(page, refs, "Taxi", "Prompt on flight paths", col2_x, -92,
+        function() return Profile().promptOnTaxi end,
+        SetProfileValue("promptOnTaxi"),
+        "Shows a Take Break Now button when flying with under 5 minutes left.")
+
+    MakeCheckbox(page, refs, "Locked", "Lock widget position", col3_x, -92,
         function() return Profile().locked end,
         SetProfileValue("locked"),
         "Prevents dragging the floating mini countdown widget with the mouse.")
 
-    -- Row 3 (y = -150): Primary Sliders Row
-    MakeSlider(page, refs, "CustomWork", "Custom work duration", col1_x, -150, 1, 120, 1,
-        function(v) return string.format("Custom work duration: %d min", v) end,
-        function() return Profile().customWorkMinutes end,
-        SetCustomValue("customWorkMinutes"), COL_W)
-
-    MakeSlider(page, refs, "Warning", "Warning lead time", col2_x, -150, 10, 300, 5,
-        function(v) return string.format("Warning lead time: %d sec", v) end,
-        function() return Profile().warningDuration end,
-        SetProfileValue("warningDuration"), COL_W)
-
-    MakeSlider(page, refs, "Scale", "Widget scale", col3_x, -150, 0.6, 1.5, 0.05,
-        function(v) return string.format("Widget scale: %.2fx", v) end,
-        function() return Profile().widgetScale end,
-        SetProfileValue("widgetScale", function()
-            if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
-        end), COL_W)
-
-    -- Row 4 (y = -196): Rest Duration / Minimap Toggle / Countdown Font Dropdown
-    MakeSlider(page, refs, "CustomRest", "Custom rest duration", col1_x, -196, 5, 120, 5,
-        function(v) return string.format("Custom rest duration: %d sec", v) end,
-        function() return Profile().customRestSeconds end,
-        SetCustomValue("customRestSeconds"), COL_W)
-
-    MakeCheckbox(page, refs, "Minimap", "Show minimap button", col2_x, -196,
+    -- Row 3 (y = -120)
+    MakeCheckbox(page, refs, "Minimap", "Show minimap button", col2_x, -120,
         function() return Profile().showMinimap end,
         function(v)
             if not ns.db then return end
@@ -449,7 +422,13 @@ local function CreateMainPanel()
         end,
         "Adds the Eagle Eye icon next to the minimap.")
 
-    MakeDropdown(page, refs, "FontFace", "Countdown font", col3_x, -196, DROP_W,
+    -- SECTION 2: Top Dropdowns Row (y = -154)
+    MakeDropdown(page, refs, "Preset", "Timer preset (work / distance / rest)", col1_x, -154, DROP_W,
+        PRESET_ITEMS,
+        function() return Profile().preset end,
+        function(v) ns.SetPreset(v) end)
+
+    MakeDropdown(page, refs, "FontFace", "Countdown font", col3_x, -154, DROP_W,
         FONT_ITEMS,
         function() return Profile().fontFace end,
         function(v)
@@ -459,38 +438,54 @@ local function CreateMainPanel()
             ns.Fire("SettingsChanged")
         end)
 
-    -- Row 5 (y = -242): Look-Away Distance / Reset Minimap / Countdown Font Size
-    MakeSlider(page, refs, "CustomDistance", "Custom look-away distance", col1_x, -242, 1, 100, 1,
-        function(v) return string.format("Custom look-away distance: %d ft", v) end,
-        function() return Profile().customDistanceFeet end,
-        SetCustomValue("customDistanceFeet"), COL_W)
+    -- SECTION 3: Primary Sliders Row (y = -215)
+    MakeSlider(page, refs, "CustomWork", "Custom work duration", col1_x, -215, 1, 120, 1,
+        function(v) return string.format("Work duration: %d min", v) end,
+        function() return Profile().customWorkMinutes end,
+        SetCustomValue("customWorkMinutes"), COL_W)
 
-    MakePanelButton(page, "Reset Minimap", col2_x, -242, COL_W, function()
-        if not ns.db then return end
-        ns.db.profile.minimapAngle = 250
-        if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
-        ns.Fire("SettingsChanged")
-        ns.Fire("ConfigRefresh")
-    end)
+    MakeSlider(page, refs, "Warning", "Warning lead time", col2_x, -215, 10, 300, 5,
+        function(v) return string.format("Warning lead: %d sec", v) end,
+        function() return Profile().warningDuration end,
+        SetProfileValue("warningDuration"), COL_W)
 
-    MakeSlider(page, refs, "FontSize", "Countdown font size", col3_x, -242, 10, 24, 1,
+    MakeSlider(page, refs, "Scale", "Widget scale", col3_x, -215, 0.6, 1.5, 0.05,
+        function(v) return string.format("Widget scale: %.2fx", v) end,
+        function() return Profile().widgetScale end,
+        SetProfileValue("widgetScale", function()
+            if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
+        end), COL_W)
+
+    -- SECTION 4: Secondary Sliders Row (y = -268)
+    MakeSlider(page, refs, "CustomRest", "Custom rest duration", col1_x, -268, 5, 120, 5,
+        function(v) return string.format("Rest duration: %d sec", v) end,
+        function() return Profile().customRestSeconds end,
+        SetCustomValue("customRestSeconds"), COL_W)
+
+    MakeSlider(page, refs, "Snooze", "Snooze step", col2_x, -268, 15, 300, 15,
+        function(v) return string.format("Snooze step: %d sec", v) end,
+        function() return Profile().snoozeDuration end,
+        SetProfileValue("snoozeDuration"), COL_W)
+
+    MakeSlider(page, refs, "FontSize", "Countdown font size", col3_x, -268, 10, 24, 1,
         function(v) return string.format("Countdown font size: %d", v) end,
         function() return Profile().fontSize end,
         SetProfileValue("fontSize", function()
             if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
         end), COL_W)
 
-    -- Row 6 (y = -288): Snooze Step / Test Break / Countdown Outline
-    MakeSlider(page, refs, "Snooze", "Snooze step", col1_x, -288, 15, 300, 15,
-        function(v) return string.format("Snooze step: %d sec", v) end,
-        function() return Profile().snoozeDuration end,
-        SetProfileValue("snoozeDuration"), COL_W)
+    -- SECTION 5: Distance & Bottom Dropdowns Row (y = -322)
+    MakeSlider(page, refs, "CustomDistance", "Custom distance", col1_x, -322, 1, 100, 1,
+        function(v) return string.format("Distance: %d ft", v) end,
+        function() return Profile().customDistanceFeet end,
+        SetCustomValue("customDistanceFeet"), COL_W)
 
-    MakePanelButton(page, "Test Break", col2_x, -288, COL_W, function()
-        ns.TestBreak()
-    end)
+    MakeDropdown(page, refs, "Abort", "When break cancelled", col2_x, -322, DROP_W,
+        ABORT_ITEMS,
+        function() return Profile().abortAction end,
+        SetProfileValue("abortAction"))
 
-    MakeDropdown(page, refs, "Outline", "Countdown outline", col3_x, -288, DROP_W,
+    MakeDropdown(page, refs, "Outline", "Countdown outline", col3_x, -322, DROP_W,
         OUTLINE_ITEMS,
         function()
             local v = Profile().fontOutline
@@ -502,37 +497,53 @@ local function CreateMainPanel()
             ns.Fire("SettingsChanged")
         end)
 
-    -- Row 7 (y = -334): Abort Action / Open Log / Reset Widget Position
-    MakeDropdown(page, refs, "Abort", "When break cancelled", col1_x, -334, DROP_W,
-        ABORT_ITEMS,
-        function() return Profile().abortAction end,
-        SetProfileValue("abortAction"))
+    -- SECTION 6: Action Buttons Row (y = -384)
+    MakePanelButton(page, "Test Break", col1_x, -384, COL_W, function()
+        ns.TestBreak()
+    end)
 
-    MakePanelButton(page, "Open Log", col2_x, -334, COL_W, function()
+    MakePanelButton(page, "Open Log", col2_x, -384, COL_W, function()
         if ns.ToggleLog then ns.ToggleLog() end
     end)
 
-    MakePanelButton(page, "Reset Position", col3_x, -334, COL_W, function()
+    MakePanelButton(page, "Show / Center Widget", col3_x, -384, COL_W, function()
         if not ns.db then return end
         local p = ns.db.profile
         p.widgetPoint = "CENTER"
         p.widgetRelPoint = "CENTER"
         p.widgetX = 0
-        p.widgetY = 200
+        p.widgetY = 260
         p.widgetScale = 1
         p.showWidget = true
         if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
+        if ns.Widget then
+            ns.Widget:ClearAllPoints()
+            ns.Widget:SetPoint("CENTER", UIParent, "CENTER", 0, 260)
+            ns.Widget:SetFrameStrata("DIALOG")
+            ns.Widget:SetFrameLevel(200)
+            ns.Widget:Show()
+            ns.Widget:Raise()
+        end
         ns.Fire("SettingsChanged")
         ns.Fire("ConfigRefresh")
+        ns.Print("Floating widget centered and shown.")
     end)
 
-    -- Row 8 (y = -374): Reset Statistics
-    MakePanelButton(page, "Reset Stats", col2_x, -374, COL_W, function()
+    -- SECTION 7: Reset Buttons Row (y = -418)
+    MakePanelButton(page, "Reset Stats", col1_x, -418, COL_W, function()
         if not ns.db then return end
         ns.db.stats = { completed = 0, snoozed = 0, combatInterrupted = 0, manualAborted = 0 }
         ns.session = { completed = 0, snoozed = 0, combatInterrupted = 0, manualAborted = 0 }
         ns.Log("STATS_RESET", "Statistics cleared")
         ns.Fire("StatsChanged")
+    end)
+
+    MakePanelButton(page, "Reset Minimap", col2_x, -418, COL_W, function()
+        if not ns.db then return end
+        ns.db.profile.minimapAngle = 250
+        if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
+        ns.Fire("SettingsChanged")
+        ns.Fire("ConfigRefresh")
     end)
 
     HookPanelLifecycle(panel)
@@ -584,11 +595,7 @@ local function CreateAudioPanel(parentCategory)
         play:SetScript("OnClick", function()
             local path = Profile()[row.key]
             if path and path ~= "" then
-                if ns.PlaySoundFile then
-                    ns.PlaySoundFile(path)
-                elseif PlaySoundFile then
-                    PlaySoundFile(path, "Master")
-                end
+                ns.PlaySoundFile(path, true)
             end
         end)
     end

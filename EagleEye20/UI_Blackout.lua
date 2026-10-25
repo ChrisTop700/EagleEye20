@@ -4,6 +4,16 @@ local f, title, subText, countText, hintText, logo
 local fade
 local lastClick = 0
 
+local function SetSolidColor(tex, r, g, b, a)
+    if not tex then return end
+    if tex.SetColorTexture then
+        tex:SetColorTexture(r, g, b, a or 1)
+    else
+        tex:SetTexture("Interface\\Buttons\\WHITE8X8")
+        tex:SetVertexColor(r, g, b, a or 1)
+    end
+end
+
 local function CancelBreakFromOverlay(reason)
     if ns.state == ns.RESTING then
         ns.AbortRest(reason)
@@ -21,8 +31,15 @@ local function CreateBlackout()
     -- Mouse and keyboard are enabled on show and disabled on hide so a stale or
     -- invisible overlay can never swallow clicks meant for the native UI.
     f:EnableMouse(false)
-    f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
-    f:SetBackdropColor(0, 0, 0, 0.95)
+    if f.SetBackdrop then
+        pcall(f.SetBackdrop, f, { bgFile = "Interface\\Buttons\\WHITE8X8" })
+        pcall(f.SetBackdropColor, f, 0, 0, 0, 0.95)
+    end
+
+    local bg = f:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(f)
+    SetSolidColor(bg, 0, 0, 0, 0.95)
+    f.bg = bg
     f:Hide()
 
     logo = f:CreateTexture(nil, "ARTWORK")
@@ -136,7 +153,13 @@ ns.DismissBlackout = DismissNow
 function ns.ShowBlackout()
     if not f or not ns.db then return end
     local p = ns.db.profile
-    f:SetBackdropColor(0, 0, 0, p.blackoutAlpha or 0.95)
+    local alpha = p.blackoutAlpha or 0.95
+    if f.SetBackdropColor then
+        pcall(f.SetBackdropColor, f, 0, 0, 0, alpha)
+    end
+    if f.bg then
+        SetSolidColor(f.bg, 0, 0, 0, alpha)
+    end
     subText:SetText("LOOK " .. tostring(p.distanceFeet or 20) .. " FEET AWAY")
     countText:SetText(tostring(math.max(0, math.ceil(ns.restTimer))))
     f:EnableMouse(true)

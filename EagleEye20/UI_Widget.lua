@@ -25,11 +25,16 @@ local function SetSolidColor(tex, r, g, b, a)
 end
 
 local function ApplyFont(fontString, size)
-    if not ns.db then return end
+    if not ns.db or not fontString then return end
     local p = ns.db.profile
     local outline = p.fontOutline
-    if outline == "" then outline = nil end
-    fontString:SetFont(p.fontFace or "Fonts\\FRIZQT__.TTF", size or p.fontSize, outline)
+    if outline == "" or outline == "NONE" then outline = nil end
+    local path = p.fontFace
+    if not path or path == "" then path = "Fonts\\FRIZQT__.TTF" end
+    local ok = pcall(fontString.SetFont, fontString, path, size or p.fontSize or 16, outline or "")
+    if not ok then
+        pcall(fontString.SetFont, fontString, "Fonts\\FRIZQT__.TTF", size or p.fontSize or 16, outline or "")
+    end
 end
 
 local function MakeTip()
@@ -126,7 +131,8 @@ local function CreateWidget()
     f = ns.NewFrame("Frame", "EagleEye20Widget", UIParent)
     f:SetWidth(WIDTH)
     f:SetHeight(HEIGHT)
-    f:SetFrameStrata("HIGH")
+    f:SetFrameStrata("DIALOG")
+    f:SetFrameLevel(200)
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
@@ -280,10 +286,13 @@ local function ApplyLayout()
         return
     end
     f:ClearAllPoints()
-    f:SetPoint(p.widgetPoint or "CENTER", UIParent, p.widgetRelPoint or "CENTER", p.widgetX or 0, p.widgetY or 200)
+    f:SetPoint(p.widgetPoint or "CENTER", UIParent, p.widgetRelPoint or "CENTER", p.widgetX or 0, p.widgetY or 260)
     f:SetScale(p.widgetScale or 1)
+    f:SetFrameStrata("DIALOG")
+    f:SetFrameLevel(200)
     ApplyFont(countText, p.fontSize)
     f:Show()
+    f:Raise()
 end
 
 local function Update()
@@ -295,6 +304,7 @@ local function Update()
         return
     end
     f:Show()
+    f:Raise()
 
     local state = ns.state
     local color = ns.COLORS[state] or ns.COLORS.PAUSED

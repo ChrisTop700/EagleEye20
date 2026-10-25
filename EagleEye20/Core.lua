@@ -135,7 +135,7 @@ local defaults = {
         widgetPoint = "CENTER",
         widgetRelPoint = "CENTER",
         widgetX = 0,
-        widgetY = 200,
+        widgetY = 260,
         widgetScale = 1.0,
         showWidget = true,
         showMinimap = true,
@@ -269,13 +269,50 @@ function ns.FormatMessage(msg)
     return msg
 end
 
-function ns.PlaySoundFile(path)
-    if not ns.db or not ns.db.profile.soundEnabled then return end
-    if not path or path == "" then return end
+local SOUND_INFO = {
+    ["Sound\\Interface\\RaidWarning.wav"] = { kit = 8959, alt = "Sound\\Interface\\RaidWarning.ogg" },
+    ["Sound\\Interface\\ReadyCheck.wav"] = { kit = 8960, alt = "Sound\\Interface\\ReadyCheck.ogg" },
+    ["Sound\\Interface\\MapPing.wav"] = { kit = 3175, alt = "Sound\\Interface\\MapPing.ogg" },
+    ["Sound\\Interface\\LevelUp.wav"] = { kit = 618, alt = "Sound\\Interface\\LevelUp.ogg" },
+    ["Sound\\Interface\\AlarmClockWarning3.wav"] = { kit = 11773, alt = "Sound\\Interface\\AlarmClockWarning3.ogg" },
+    ["Sound\\Interface\\iTellMessage.wav"] = { kit = 3081, alt = "Sound\\Interface\\iTellMessage.ogg" },
+    ["Sound\\Interface\\PVPThroughQueue.wav"] = { kit = 8459, alt = "Sound\\Interface\\PVPThroughQueue.ogg" },
+    ["Sound\\Interface\\AuctionWindowOpen.wav"] = { kit = 5389, alt = "Sound\\Interface\\AuctionWindowOpen.ogg" },
+    ["Sound\\Interface\\Error.wav"] = { kit = 8958, alt = "Sound\\Interface\\Error.ogg" },
+}
+
+function ns.PlaySoundFile(sound, force)
+    if not force and (not ns.db or not ns.db.profile.soundEnabled) then return end
+    if not sound or sound == "" or sound == "None" then return end
+
+    local num = tonumber(sound)
+    if num and PlaySound then
+        local ok = pcall(PlaySound, num, "Master")
+        if ok then return end
+        pcall(PlaySound, num)
+        return
+    end
+
+    local info = SOUND_INFO[sound]
+    if info and info.kit and PlaySound then
+        local ok = pcall(PlaySound, info.kit, "Master")
+        if ok then return end
+        pcall(PlaySound, info.kit)
+    end
+
+    if SOUNDKIT and type(sound) == "string" and SOUNDKIT[sound] and PlaySound then
+        local ok = pcall(PlaySound, SOUNDKIT[sound], "Master")
+        if ok then return end
+        pcall(PlaySound, SOUNDKIT[sound])
+    end
+
     if PlaySoundFile then
-        local ok = pcall(PlaySoundFile, path, "Master")
+        local ok = pcall(PlaySoundFile, sound, "Master")
         if not ok then
-            pcall(PlaySoundFile, path)
+            pcall(PlaySoundFile, sound)
+        end
+        if info and info.alt then
+            pcall(PlaySoundFile, info.alt, "Master")
         end
     end
 end
@@ -489,10 +526,13 @@ function ns.TestBreak()
         ns.Print("Finish or abort the current break first.")
         return
     end
-    ns.timeRemaining = 5
-    ns.Log("TEST", "Test cycle started with 5s left")
-    ns.SetState(ns.PREPARE)
-    ns.PlaySoundFile(ns.db.profile.soundWarning)
+    ns.Log("TEST", "5s test break started")
+    ns.Print("Starting 5s test eye break overlay...")
+    ns.restTimer = 5
+    ns.timeRemaining = 0
+    ns.PlaySoundFile(ns.db.profile.soundBreakStart, true)
+    ns.SetState(ns.RESTING)
+    ns.Fire("BreakStart")
     ns.Fire("TimersChanged")
 end
 

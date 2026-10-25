@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Eagle%20Eye%2020%20Logo.svg" alt="Eagle Eye 20 Logo" width="180"/>
+  <img src="Eagle%20Eye%2020%20Logo.svg" alt="Eagle Eye 20 Logo" width="320"/>
 </p>
 
 <h1 align="center">Eagle Eye 20/20/20 (<code>EagleEye20</code>)</h1>
@@ -30,27 +30,6 @@ Every cycle the addon counts down your screen time, then asks you to confirm you
 1. Copy the `EagleEye20` addon folder into your client's `Interface\AddOns\` directory.
 2. Restart the client (or `/reload`).
 3. The mini timer appears near the center of the screen; drag it where you like.
-
-## Artwork
-
-<p align="center">
-  <img src="Eagle%20Eye%2020%20Icon.svg" alt="Eagle Eye 20 Icon" width="128"/>
-</p>
-
-The two SVG sources at the repository root are rendered into the textures the addon loads:
-
-| File | Source | Used by |
-| --- | --- | --- |
-| `Textures/Icon.tga` | `Eagle Eye 20 Icon.svg` (256px) | TOC `IconTexture`, options header, log header |
-| `Textures/IconRound.tga` | circular crop of the icon (128px) | minimap button, mini widget header |
-| `Textures/Logo.tga` | `Eagle Eye 20 Logo.svg` (256px) | options corner mark, blackout break screen |
-
-Regenerate them after editing an SVG:
-
-```bash
-pip install resvg-py pillow
-python tools/build_textures.py
-```
 
 ## Slash commands
 

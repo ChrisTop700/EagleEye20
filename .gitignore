@@ -1,0 +1,15 @@
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.bak
+*~
+
+# Packaged builds
+*.zip
+dist/

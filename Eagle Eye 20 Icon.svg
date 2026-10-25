@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <clipPath id="smallEyeClip">
+      <path d="M 16 128 Q 128 28 240 128 Q 128 228 16 128 Z" />
+    </clipPath>
+  </defs>
+
+  <!-- WoW Button Frame -->
+  <rect x="6" y="6" width="244" height="244" rx="24" fill="#101016" stroke="#383846" stroke-width="8" />
+
+  <!-- Clipped Horizon Scene -->
+  <g clip-path="url(#smallEyeClip)">
+    <rect x="16" y="28" width="224" height="200" fill="#0d2a2c" />
+    <!-- Bold Amber Sun -->
+    <circle cx="128" cy="122" r="48" fill="#f2a61a" />
+    <!-- Bold Eagle Silhouette (Slightly higher to clear the reticle) -->
+    <path d="M 96 96 Q 112 82 128 98 Q 144 82 160 96 Q 142 92 128 108 Q 114 92 96 96 Z" fill="#101016" />
+    <!-- High-Contrast Mountains -->
+    <polygon points="10,210 85,125 140,170 190,115 246,210" fill="#12181f" />
+  </g>
+
+  <!-- Bold 4-Corner Target Box (Thickened for 64x64 / 32x32 readability) -->
+  <g fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="square" opacity="0.92">
+    <!-- Top-Left Bracket -->
+    <path d="M 102 122 L 102 108 L 116 108" />
+    <!-- Top-Right Bracket -->
+    <path d="M 140 108 L 154 108 L 154 122" />
+    <!-- Bottom-Left Bracket -->
+    <path d="M 102 142 L 102 156 L 116 156" />
+    <!-- Bottom-Right Bracket -->
+    <path d="M 140 156 L 154 156 L 154 142" />
+  </g>
+
+  <!-- Thick Teal Eye Border & Reticle Ticks -->
+  <path d="M 16 128 Q 128 28 240 128 Q 128 228 16 128 Z" fill="none" stroke="#00cc99" stroke-width="12" stroke-linejoin="round" />
+  <line x1="128" y1="54" x2="128" y2="74" stroke="#00cc99" stroke-width="8" stroke-linecap="round" />
+  <line x1="128" y1="182" x2="128" y2="202" stroke="#00cc99" stroke-width="8" stroke-linecap="round" />
+  <line x1="42" y1="128" x2="62" y2="128" stroke="#00cc99" stroke-width="8" stroke-linecap="round" />
+  <line x1="194" y1="128" x2="214" y2="128" stroke="#00cc99" stroke-width="8" stroke-linecap="round" />
+</svg>

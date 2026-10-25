@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <clipPath id="eyeClip">
+      <path d="M 44 256 Q 256 88 468 256 Q 256 424 44 256 Z" />
+    </clipPath>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181822" />
+      <stop offset="100%" stop-color="#0c0c12" />
+    </linearGradient>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#091921" />
+      <stop offset="55%" stop-color="#0f3433" />
+      <stop offset="100%" stop-color="#f2a61a" stop-opacity="0.45" />
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd266" stop-opacity="1" />
+      <stop offset="65%" stop-color="#f2a61a" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#f2a61a" stop-opacity="0" />
+    </radialGradient>
+    <filter id="tealGlow" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Outer Dark Slate Emblem Frame -->
+  <rect x="16" y="16" width="480" height="480" rx="64" fill="url(#bgGrad)" stroke="#323240" stroke-width="6" />
+  <rect x="28" y="28" width="456" height="456" rx="52" fill="none" stroke="#00cc99" stroke-width="1.5" stroke-opacity="0.25" />
+
+  <!-- Subtle Outer Rangefinder Ring -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="#282836" stroke-width="2" stroke-dasharray="8 12" />
+
+  <!-- Clipped Interior of the Eye (Distant Horizon) -->
+  <g clip-path="url(#eyeClip)">
+    <rect x="44" y="88" width="424" height="336" fill="url(#skyGrad)" />
+    
+    <!-- Subtle Inner Reticle Grid Lines -->
+    <line x1="44" y1="256" x2="468" y2="256" stroke="#00cc99" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="6 6" />
+    <line x1="256" y1="88" x2="256" y2="424" stroke="#00cc99" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="6 6" />
+
+    <!-- Amber Rising Sun / 20s Timer Disc -->
+    <circle cx="256" cy="246" r="88" fill="url(#sunGlow)" />
+    <circle cx="256" cy="246" r="56" fill="#f2a61a" />
+
+    <!-- Soaring Eagle Silhouette (Centered in Sun) -->
+    <path d="M 204 214 Q 232 194 256 216 Q 280 194 308 214 Q 278 208 256 228 Q 234 208 204 214 Z" fill="#121217" />
+
+    <!-- Distant Mountain Range (Layered for Depth) -->
+    <polygon points="30,370 145,235 235,310 345,215 482,370" fill="#162429" />
+    <polygon points="145,235 185,270 155,310 115,270" fill="#1e3138" opacity="0.5" />
+    <polygon points="345,215 390,260 355,310 315,255" fill="#1e3138" opacity="0.5" />
+    <polygon points="100,370 215,255 305,330 405,250 490,370" fill="#0d1317" />
+  </g>
+
+  <!-- Glowing Teal Eye Outline -->
+  <path d="M 44 256 Q 256 88 468 256 Q 256 424 44 256 Z" fill="none" stroke="#00cc99" stroke-width="10" stroke-linejoin="round" filter="url(#tealGlow)" />
+
+  <!-- Hunter Rangefinder Crosshair Ticks -->
+  <line x1="256" y1="138" x2="256" y2="168" stroke="#00cc99" stroke-width="5" stroke-linecap="round" />
+  <line x1="256" y1="344" x2="256" y2="374" stroke="#00cc99" stroke-width="5" stroke-linecap="round" />
+  <line x1="96" y1="256" x2="128" y2="256" stroke="#00cc99" stroke-width="5" stroke-linecap="round" />
+  <line x1="384" y1="256" x2="416" y2="256" stroke="#00cc99" stroke-width="5" stroke-linecap="round" />
+
+  <!-- Complete 4-Corner Square Target Box (68x68 Centered around Horizon) -->
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square" opacity="0.88">
+    <!-- Top-Left Bracket -->
+    <path d="M 222 252 L 222 236 L 238 236" />
+    <!-- Top-Right Bracket -->
+    <path d="M 274 236 L 290 236 L 290 252" />
+    <!-- Bottom-Left Bracket -->
+    <path d="M 222 288 L 222 304 L 238 304" />
+    <!-- Bottom-Right Bracket -->
+    <path d="M 274 304 L 290 304 L 290 288" />
+  </g>
+
+  <!-- Top Title Header: EAGLE EYE 20 -->
+  <text x="256" y="86" font-family="Arial, sans-serif" font-weight="900" font-size="28" fill="#00cc99" text-anchor="middle" letter-spacing="6">
+    EAGLE EYE <tspan fill="#f2a61a">20</tspan>
+  </text>
+
+  <!-- Widened Bottom Telemetry Pill (300px wide, centered at x=256) -->
+  <rect x="106" y="408" width="300" height="42" rx="10" fill="#14141d" stroke="#323240" stroke-width="2" />
+  <text x="256" y="436" font-family="Consolas, monospace" font-weight="bold" font-size="22" fill="#e8e8f0" text-anchor="middle" letter-spacing="3">
+    20<tspan fill="#f2a61a">M</tspan> • 20<tspan fill="#f2a61a">S</tspan> • 20<tspan fill="#f2a61a">FT</tspan>
+  </text>
+</svg>

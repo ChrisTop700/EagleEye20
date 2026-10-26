@@ -115,7 +115,7 @@ local function CreateWindow()
 
     local header = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     header:SetPoint("TOPLEFT", f, "TOPLEFT", 33, -10)
-    header:SetText("EAGLE EYE 20/20/20  -  LOG  |cff888888v" .. (ns.version or "0.11.0-alpha") .. "|r")
+    header:SetText("EAGLE EYE 20/20/20  -  LOG  |cff888888v" .. (ns.version or "0.20.0-alpha") .. "|r")
     header:SetTextColor(0.0, 0.8, 0.6)
 
     local close = ns.NewFrame("Button", nil, f)

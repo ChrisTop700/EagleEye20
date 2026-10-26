@@ -32,7 +32,7 @@ end
 _G["EagleEye20_PauseResume_Binding"] = EagleEye20_PauseResume_Binding
 
 ns.name = AddonName
-ns.version = "0.11.0-alpha"
+ns.version = "0.20.0-alpha"
 ns.MEDIA = "Interface\\AddOns\\EagleEye20\\Textures\\"
 
 -- The client is a modern (Forever, interface 16001) build. Frames only get

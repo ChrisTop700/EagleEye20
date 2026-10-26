@@ -226,7 +226,10 @@ local function CreateWindow()
             ef:SetHeight(330)
             ef:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
             ef:SetFrameStrata("DIALOG")
-            ef:SetFrameLevel(250)
+            -- No explicit SetFrameLevel here: 3.3.5a effectively caps frame
+            -- levels near 100 and a large explicit level stops the dialog's
+            -- children (close button, edit box) from rendering. Strata plus
+            -- Raise() on show is enough to sit above the log window.
             ef:SetMovable(true)
             ef:EnableMouse(true)
             ef:RegisterForDrag("LeftButton")
@@ -274,34 +277,10 @@ local function CreateWindow()
             title:SetText("EAGLE EYE 20/20/20  -  REPORT EXPORT")
             title:SetTextColor(0.0, 0.8, 0.6)
 
-            local close = ns.NewFrame("Button", nil, ef)
-            close:SetWidth(20)
-            close:SetHeight(20)
-            close:SetPoint("TOPRIGHT", ef, "TOPRIGHT", -6, -6)
-            if close.SetBackdrop then
-                pcall(close.SetBackdrop, close, {
-                    bgFile = "Interface\\Buttons\\WHITE8X8",
-                    edgeFile = "Interface\\Buttons\\WHITE8X8",
-                    edgeSize = 1,
-                })
-                pcall(close.SetBackdropColor, close, 0.16, 0.16, 0.20, 1.0)
-                pcall(close.SetBackdropBorderColor, close, 0.30, 0.30, 0.35, 1.0)
-            end
-            local closeBg = close:CreateTexture(nil, "BACKGROUND")
-            closeBg:SetAllPoints(close)
-            SetSolidColor(closeBg, 0.16, 0.16, 0.20, 1.0)
-            local closeText = close:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            closeText:SetPoint("CENTER")
-            closeText:SetText("X")
-            close:SetScript("OnClick", function() ef:Hide() end)
-            close:SetScript("OnEnter", function(self)
-                if self.SetBackdropColor then pcall(self.SetBackdropColor, self, 0.35, 0.18, 0.18, 1.0) end
-                SetSolidColor(closeBg, 0.35, 0.18, 0.18, 1.0)
-            end)
-            close:SetScript("OnLeave", function(self)
-                if self.SetBackdropColor then pcall(self.SetBackdropColor, self, 0.16, 0.16, 0.20, 1.0) end
-                SetSolidColor(closeBg, 0.16, 0.16, 0.20, 1.0)
-            end)
+            -- Blizzard's standard close button (UIPanelCloseButton exists in
+            -- 3.3.5a and hides the parent panel on click).
+            local close = CreateFrame("Button", nil, ef, "UIPanelCloseButton")
+            close:SetPoint("TOPRIGHT", ef, "TOPRIGHT", 2, 2)
 
             local note = ef:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             note:SetPoint("TOPLEFT", ef, "TOPLEFT", 12, -32)
@@ -361,6 +340,7 @@ local function CreateWindow()
         exportFrame.editBox:HighlightText()
         exportFrame:Show()
         exportFrame:Raise()
+        exportFrame.editBox:SetFocus()
     end
 
     local exportBtn = ns.NewFrame("Button", nil, f)

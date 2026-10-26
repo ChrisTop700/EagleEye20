@@ -409,11 +409,8 @@ end
 local function RegisterPanel(panel, parentCategory)
     if Settings and Settings.RegisterCanvasLayoutCategory then
         if parentCategory then
-            local sub = Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, panel.name)
-            if Settings.RegisterAddOnCategory then
-                Settings.RegisterAddOnCategory(sub)
-            end
-            return sub
+            -- Subcategories attach directly to parent; never call RegisterAddOnCategory on them (causes taint)
+            return Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, panel.name)
         end
         local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
         if Settings.RegisterAddOnCategory then
@@ -775,6 +772,15 @@ local function CreateMainPanel()
     statsLabel:SetTextColor(0.0, 0.85, 0.65)
     table.insert(refs, UpdateStats)
 
+    local verText = page:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    verText:SetPoint("TOPLEFT", page, "TOPLEFT", col1_x, -776)
+    verText:SetText(string.format("Eagle Eye 20/20/20 |cff00cc99v%s|r  |  WoW Forever (Interface 16001)", ns.version or "0.11.0-alpha"))
+    verText:SetTextColor(0.55, 0.60, 0.65)
+
+    local fixedFooter = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    fixedFooter:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -26, 6)
+    fixedFooter:SetText(string.format("EagleEye20 v%s", ns.version or "0.11.0-alpha"))
+
     HookPanelLifecycle(panel)
     ns.ConfigPanel = panel
     return RegisterPanel(panel)
@@ -861,6 +867,10 @@ local function CreateAudioPanel(parentCategory)
     MakeEditbox(page, refs, "EndMsg", "Break end message ({rest} token)", 300, -238, 260,
         function() return Profile().partyEndMsg end,
         function(v) ns.db.profile.partyEndMsg = v end)
+
+    local fixedFooter = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    fixedFooter:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -26, 6)
+    fixedFooter:SetText(string.format("EagleEye20 v%s", ns.version or "0.11.0-alpha"))
 
     HookPanelLifecycle(panel)
     return RegisterPanel(panel, parentCategory)

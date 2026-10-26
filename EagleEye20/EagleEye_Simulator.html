@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eagle Eye 20/20/20 — UI Simulator & Test Harness</title>
+<style>
+  :root {
+    --bg-dark: #0a0c12;
+    --widget-bg: rgba(15, 20, 31, 0.94);
+    --widget-border: #00cc99;
+    --accent-teal: #00cc99;
+    --accent-amber: #f2a61a;
+    --accent-red: #f24e4e;
+    --text-primary: #f0f2f5;
+    --text-muted: #9aa0a6;
+    --btn-bg: #242933;
+    --btn-hover: #384252;
+    --btn-border: #4d5966;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background-color: #0b0e14;
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top Control / Simulation Bar */
+  #control-bar {
+    height: 48px;
+    background: #141721;
+    border-bottom: 1px solid #2a2e3d;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    z-index: 1000;
+    font-size: 13px;
+  }
+  .bar-title {
+    font-weight: 700;
+    color: var(--accent-teal);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 12px;
+  }
+  .pill-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .pill-running { background: #004d3d; color: #00ffbf; }
+  .pill-combat { background: #4d0000; color: #ff6666; }
+  .pill-waiting { background: #4d3d00; color: #ffcc00; }
+  .pill-resting { background: #33004d; color: #d966ff; }
+  .pill-paused { background: #262626; color: #aaaaaa; }
+
+  .sim-btn {
+    background: var(--btn-bg);
+    color: #e2e8f0;
+    border: 1px solid var(--btn-border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .sim-btn:hover { background: var(--btn-hover); border-color: #718096; }
+  .sim-btn.active {
+    background: #742a2a;
+    border-color: #e53e3e;
+    color: #fff;
+  }
+  .spacer { flex: 1; }
+
+  /* WoW Screen Viewport */
+  #wow-viewport {
+    flex: 1;
+    position: relative;
+    background: radial-gradient(circle at 50% 50%, #171d2b 0%, #0d1017 100%);
+    background-image: 
+      radial-gradient(rgba(255,255,255,0.03) 1px, transparent 0),
+      radial-gradient(ellipse at bottom, #111b2b 0%, #06090e 100%);
+    background-size: 24px 24px, 100% 100%;
+    overflow: hidden;
+  }
+
+  .grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px dashed rgba(255, 255, 255, 0.05);
+  }
+  .screen-watermark {
+    position: absolute;
+    bottom: 12px;
+    left: 16px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.25);
+    letter-spacing: 0.5px;
+  }
+
+  /* Eagle Eye 20/20 Draggable HUD Widget */
+  #eagle-widget {
+    position: absolute;
+    width: 180px;
+    height: 52px;
+    background: var(--widget-bg);
+    border: 2px solid var(--widget-border);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+    cursor: move;
+    z-index: 100;
+    transition: height 0.2s ease, border-color 0.2s ease;
+  }
+  #eagle-widget.locked { cursor: default; }
+  #eagle-widget.expanded { height: 76px; }
+  #eagle-widget.pulsing {
+    animation: borderPulse 1.2s infinite ease-in-out;
+  }
+  @keyframes borderPulse {
+    0% { border-color: #f2a61a; box-shadow: 0 0 4px rgba(242, 166, 26, 0.4); }
+    50% { border-color: #ffd27a; box-shadow: 0 0 12px rgba(242, 166, 26, 0.8); }
+    100% { border-color: #f2a61a; box-shadow: 0 0 4px rgba(242, 166, 26, 0.4); }
+  }
+
+  /* Widget Header Bar */
+  .widget-header {
+    height: 18px;
+    padding: 3px 4px 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .widget-title-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .widget-icon {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    display: inline-block;
+  }
+  .widget-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #d1d5db;
+  }
+  .widget-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .w-btn {
+    background: #242933;
+    border: 1px solid #4d5966;
+    color: #e5e7eb;
+    font-size: 8px;
+    font-weight: 600;
+    height: 13px;
+    line-height: 11px;
+    padding: 0 4px;
+    cursor: pointer;
+    border-radius: 1px;
+  }
+  .w-btn:hover { background: #3b4454; }
+
+  /* Widget Timer Center */
+  .widget-body {
+    position: relative;
+    height: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .widget-timer {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-teal);
+    letter-spacing: 0.5px;
+    line-height: 1;
+    font-family: 'Friz Quadrata', Georgia, serif, sans-serif;
+  }
+  .widget-combat-alert {
+    position: absolute;
+    bottom: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--accent-red);
+    display: none;
+    letter-spacing: 0.5px;
+  }
+
+  /* Widget Bottom Progress Bar */
+  .widget-track {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    height: 3px;
+    background: rgba(64, 64, 77, 0.5);
+  }
+  .widget-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--accent-teal);
+    transition: width 0.3s linear, background-color 0.2s;
+  }
+
+  /* Widget Expanded Action Row */
+  .widget-prompt-row {
+    position: absolute;
+    bottom: 6px;
+    left: 5px;
+    right: 5px;
+    display: none;
+    gap: 4px;
+  }
+  .w-safe-btn {
+    flex: 2;
+    height: 18px;
+    background: #1b382e;
+    border: 1px solid #00cc99;
+    color: #e6fff7;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .w-safe-btn:hover { background: #264f41; }
+  .w-snooze-btn {
+    flex: 1;
+    height: 18px;
+    background: #242933;
+    border: 1px solid #4d5966;
+    color: #e5e7eb;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .w-snooze-btn:hover { background: #3b4454; }
+
+  /* Tooltip Mockup */
+  #mock-tooltip {
+    position: absolute;
+    background: rgba(20, 20, 26, 0.95);
+    border: 1px solid rgba(64, 64, 77, 0.8);
+    color: #f0f2f5;
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 2px;
+    pointer-events: none;
+    display: none;
+    z-index: 2000;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  }
+
+  /* Fullscreen Blackout Overlay (UI_Blackout.lua) */
+  #blackout-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 500;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+  }
+  .bo-logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-teal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    background: radial-gradient(circle, rgba(0,204,153,0.2) 0%, transparent 70%);
+  }
+  .bo-eye-pupil {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    box-shadow: 0 0 16px var(--accent-teal);
+  }
+  .bo-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--accent-teal);
+    font-family: 'Friz Quadrata', Georgia, serif;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  }
+  .bo-sub {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    color: #e5e7eb;
+    margin-bottom: 28px;
+  }
+  .bo-counter {
+    font-size: 110px;
+    font-weight: 900;
+    color: var(--accent-amber);
+    line-height: 1;
+    font-family: 'Friz Quadrata', Georgia, serif;
+    text-shadow: 0 4px 16px rgba(242, 166, 26, 0.3);
+    margin-bottom: 40px;
+  }
+  .bo-hint {
+    position: absolute;
+    bottom: 32px;
+    font-size: 12px;
+    color: rgba(200, 200, 210, 0.7);
+    letter-spacing: 0.5px;
+  }
+
+  /* Log Overlay Mock */
+  #log-modal {
+    position: absolute;
+    top: 80px;
+    right: 40px;
+    width: 320px;
+    background: #11141c;
+    border: 1px solid #333a4d;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+    display: none;
+    z-index: 300;
+    border-radius: 4px;
+  }
+  .modal-head {
+    padding: 8px 12px;
+    background: #181d29;
+    border-bottom: 1px solid #2d3345;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+  }
+  .modal-body {
+    padding: 10px 12px;
+    font-size: 11px;
+    max-height: 220px;
+    overflow-y: auto;
+    color: #cbd5e1;
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Simulation Control Bar -->
+<div id="control-bar">
+  <div class="bar-title">
+    <span>🦅 EagleEye 20/20</span>
+    <span id="state-pill" class="pill-badge pill-running">RUNNING</span>
+  </div>
+
+  <button class="sim-btn" onclick="simTriggerWorkComplete()">⏱️ Jump to Safe Prompt</button>
+  <button class="sim-btn" onclick="simTriggerBreak()">🕶️ Fire 20s Rest Overlay</button>
+  <button id="combat-btn" class="sim-btn" onclick="simToggleCombat()">⚔️ Simulate Combat (Off)</button>
+  <button id="taxi-btn" class="sim-btn" onclick="simToggleTaxi()">🦅 Simulate Taxi (Off)</button>
+  <button class="sim-btn" onclick="simFastForward()">⏩ +5m Forward</button>
+  
+  <div class="spacer"></div>
+  <button class="sim-btn" onclick="toggleLogModal()">📋 Toggle Log Frame</button>
+  <button class="sim-btn" onclick="simResetAll()">🔄 Reset Session</button>
+</div>
+
+<!-- WoW Viewport Area -->
+<div id="wow-viewport">
+  <div class="grid-overlay"></div>
+  <div class="screen-watermark">WoW Forever Mock Client Canvas (1080p Viewport) — Drag Widget to Re-anchor</div>
+
+  <!-- EagleEye HUD Widget -->
+  <div id="eagle-widget" style="left: 45%; top: 40%;">
+    <!-- Header -->
+    <div class="widget-header">
+      <div class="widget-title-group">
+        <span class="widget-icon"></span>
+        <span class="widget-title">EAGLE EYE</span>
+      </div>
+      <div class="widget-actions">
+        <button id="w-btn-lock" class="w-btn" title="Toggle Lock" onclick="toggleWidgetLock()">U</button>
+        <button id="w-btn-pause" class="w-btn" title="Pause / Resume" onclick="toggleWidgetPause()">II</button>
+        <button class="w-btn" title="Reset Timer" onclick="widgetResetClick()">RST</button>
+        <button class="w-btn" title="Event Log" onclick="toggleLogModal()">LOG</button>
+      </div>
+    </div>
+
+    <!-- Center Body -->
+    <div class="widget-body">
+      <div id="w-timer" class="widget-timer">20:00</div>
+      <div id="w-combat-alert" class="widget-combat-alert">IN COMBAT - WAITING</div>
+    </div>
+
+    <!-- Bottom Progress Track -->
+    <div id="w-track" class="widget-track">
+      <div id="w-fill" class="widget-fill"></div>
+    </div>
+
+    <!-- Expanded Prompt Row (Appears when READY_WAITING) -->
+    <div id="w-prompt-row" class="widget-prompt-row">
+      <button class="w-safe-btn" onclick="simConfirmSafe()">SAFE NOW</button>
+      <button class="w-snooze-btn" onclick="simSnooze(60)">+1M</button>
+      <button class="w-snooze-btn" onclick="simSnooze(120)">+2M</button>
+    </div>
+  </div>
+
+  <!-- Fullscreen Rest Blackout Overlay -->
+  <div id="blackout-overlay" ondblclick="cancelBreak('Double-click')" onclick="handleOverlayClick()">
+    <div class="bo-logo">
+      <div class="bo-eye-pupil"></div>
+    </div>
+    <div class="bo-title">EAGLE EYE 20/20/20</div>
+    <div class="bo-sub">LOOK 20 FEET AWAY</div>
+    <div id="bo-countdown" class="bo-counter">20</div>
+    <div class="bo-hint">Double-click anywhere or press ESC to emergency cancel (Auto-cancels on combat)</div>
+  </div>
+
+  <!-- Log Window Modal -->
+  <div id="log-modal">
+    <div class="modal-head">
+      <span>Eagle Eye Event History</span>
+      <span style="cursor:pointer;" onclick="toggleLogModal()">✕</span>
+    </div>
+    <div id="log-entries" class="modal-body">
+      <div>[00:00] Addon loaded (Interface 16001).</div>
+      <div>[00:00] Work timer started: 20m 00s.</div>
+    </div>
+  </div>
+
+  <!-- Mock Tooltip -->
+  <div id="mock-tooltip"></div>
+</div>
+
+<script>
+  // Addon State Machine Simulation
+  const STATES = {
+    RUNNING: 'RUNNING',
+    READY_WAITING: 'READY_WAITING',
+    RESTING: 'RESTING',
+    PAUSED: 'PAUSED',
+    COMBAT_DEFERRED: 'COMBAT_DEFERRED'
+  };
+
+  let currentState = STATES.RUNNING;
+  let workSecondsLeft = 20 * 60; // 20 minutes
+  const totalWorkSeconds = 20 * 60;
+  let restSecondsLeft = 20;
+  let isCombat = false;
+  let isTaxi = false;
+  let isLocked = false;
+  let isPaused = false;
+  let lastClickTime = 0;
+
+  // Timer Tick Interval
+  setInterval(() => {
+    if (isPaused) return;
+
+    if (currentState === STATES.RUNNING) {
+      if (workSecondsLeft > 0) {
+        workSecondsLeft--;
+        updateWidgetDisplay();
+      } else {
+        // Reached break threshold
+        triggerSafePrompt();
+      }
+    } else if (currentState === STATES.RESTING) {
+      if (restSecondsLeft > 0) {
+        restSecondsLeft--;
+        document.getElementById('bo-countdown').innerText = restSecondsLeft;
+      } else {
+        finishBreak();
+      }
+    }
+  }, 1000);
+
+  function logEvent(msg) {
+    const logBox = document.getElementById('log-entries');
+    const row = document.createElement('div');
+    const time = new Date().toLocaleTimeString();
+    row.innerText = `[${time}] ${msg}`;
+    logBox.prepend(row);
+  }
+
+  function setState(newState) {
+    currentState = newState;
+    const pill = document.getElementById('state-pill');
+    pill.className = 'pill-badge';
+    
+    if (newState === STATES.RUNNING) {
+      pill.innerText = 'RUNNING';
+      pill.classList.add('pill-running');
+      setWidgetMode(false, false);
+    } else if (newState === STATES.READY_WAITING) {
+      pill.innerText = 'READY (SAFE CHECK)';
+      pill.classList.add('pill-waiting');
+      setWidgetMode(true, true);
+    } else if (newState === STATES.RESTING) {
+      pill.innerText = 'RESTING (20s)';
+      pill.classList.add('pill-resting');
+      setWidgetMode(false, false);
+      showBlackout(true);
+    } else if (newState === STATES.PAUSED) {
+      pill.innerText = 'PAUSED';
+      pill.classList.add('pill-paused');
+    } else if (newState === STATES.COMBAT_DEFERRED) {
+      pill.innerText = 'COMBAT DEFERRED';
+      pill.classList.add('pill-combat');
+      setWidgetMode(false, false);
+    }
+  }
+
+  function setWidgetMode(expanded, pulsing) {
+    const widget = document.getElementById('eagle-widget');
+    const promptRow = document.getElementById('w-prompt-row');
+    const track = document.getElementById('w-track');
+
+    if (expanded) {
+      widget.classList.add('expanded');
+      promptRow.style.display = 'flex';
+      track.style.display = 'none';
+    } else {
+      widget.classList.remove('expanded');
+      promptRow.style.display = 'none';
+      track.style.display = 'block';
+    }
+
+    if (pulsing) {
+      widget.classList.add('pulsing');
+    } else {
+      widget.classList.remove('pulsing');
+    }
+  }
+
+  function updateWidgetDisplay() {
+    const mins = Math.floor(workSecondsLeft / 60);
+    const secs = workSecondsLeft % 60;
+    const str = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    document.getElementById('w-timer').innerText = str;
+
+    const fraction = (workSecondsLeft / totalWorkSeconds) * 100;
+    document.getElementById('w-fill').style.width = `${fraction}%`;
+  }
+
+  function triggerSafePrompt() {
+    if (isCombat) {
+      setState(STATES.COMBAT_DEFERRED);
+      document.getElementById('w-combat-alert').style.display = 'block';
+      logEvent('20m reached but deferred due to active COMBAT.');
+      return;
+    }
+    setState(STATES.READY_WAITING);
+    logEvent('20m work cycle complete. Prompting player: SAFE NOW?');
+  }
+
+  function simConfirmSafe() {
+    logEvent('Player confirmed safe. Starting 20-second rest break.');
+    restSecondsLeft = 20;
+    document.getElementById('bo-countdown').innerText = '20';
+    setState(STATES.RESTING);
+  }
+
+  function simSnooze(seconds) {
+    workSecondsLeft = seconds;
+    setState(STATES.RUNNING);
+    logEvent(`Break snoozed by +${seconds / 60} minutes.`);
+    updateWidgetDisplay();
+  }
+
+  function showBlackout(visible) {
+    document.getElementById('blackout-overlay').style.display = visible ? 'flex' : 'none';
+  }
+
+  function finishBreak() {
+    showBlackout(false);
+    workSecondsLeft = totalWorkSeconds;
+    setState(STATES.RUNNING);
+    updateWidgetDisplay();
+    logEvent('Break completed! Eyes rested 20 feet away. Work timer reset to 20:00.');
+  }
+
+  function cancelBreak(reason) {
+    if (currentState === STATES.RESTING) {
+      showBlackout(false);
+      workSecondsLeft = 60; // 1 min buffer
+      setState(STATES.RUNNING);
+      updateWidgetDisplay();
+      logEvent(`Break canceled early (${reason}). Added 1m safety buffer.`);
+    }
+  }
+
+  function handleOverlayClick() {
+    const now = Date.now();
+    if (now - lastClickTime < 350) {
+      cancelBreak('Double-click');
+    }
+    lastClickTime = now;
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && currentState === STATES.RESTING) {
+      cancelBreak('ESC key');
+    }
+  });
+
+  // Top Bar Simulation Actions
+  function simTriggerWorkComplete() {
+    workSecondsLeft = 0;
+    triggerSafePrompt();
+  }
+
+  function simTriggerBreak() {
+    simConfirmSafe();
+  }
+
+  function simFastForward() {
+    workSecondsLeft = Math.max(5, workSecondsLeft - 300);
+    updateWidgetDisplay();
+    logEvent('Fast-forwarded timer by 5 minutes.');
+  }
+
+  function simToggleCombat() {
+    isCombat = !isCombat;
+    const btn = document.getElementById('combat-btn');
+    const combatAlert = document.getElementById('w-combat-alert');
+    if (isCombat) {
+      btn.classList.add('active');
+      btn.innerText = '⚔️ In Combat (PLAYER_REGEN_DISABLED)';
+      combatAlert.style.display = 'block';
+      logEvent('Event: PLAYER_REGEN_DISABLED (Entered Combat).');
+      if (currentState === STATES.RESTING) {
+        cancelBreak('Combat safety auto-abort');
+      }
+    } else {
+      btn.classList.remove('active');
+      btn.innerText = '⚔️ Simulate Combat (Off)';
+      combatAlert.style.display = 'none';
+      logEvent('Event: PLAYER_REGEN_ENABLED (Left Combat).');
+      if (currentState === STATES.COMBAT_DEFERRED) {
+        triggerSafePrompt();
+      }
+    }
+  }
+
+  function simToggleTaxi() {
+    isTaxi = !isTaxi;
+    const btn = document.getElementById('taxi-btn');
+    if (isTaxi) {
+      btn.classList.add('active');
+      btn.innerText = '🦅 On Taxi Flight';
+      logEvent('Event: PLAYER_CONTROL_LOST (Taxi flight started).');
+    } else {
+      btn.classList.remove('active');
+      btn.innerText = '🦅 Simulate Taxi (Off)';
+      logEvent('Event: PLAYER_CONTROL_GAINED (Taxi flight ended).');
+    }
+  }
+
+  function simResetAll() {
+    isCombat = false;
+    isTaxi = false;
+    isPaused = false;
+    workSecondsLeft = totalWorkSeconds;
+    restSecondsLeft = 20;
+    showBlackout(false);
+    document.getElementById('combat-btn').className = 'sim-btn';
+    document.getElementById('combat-btn').innerText = '⚔️ Simulate Combat (Off)';
+    document.getElementById('taxi-btn').className = 'sim-btn';
+    document.getElementById('taxi-btn').innerText = '🦅 Simulate Taxi (Off)';
+    document.getElementById('w-combat-alert').style.display = 'none';
+    setState(STATES.RUNNING);
+    updateWidgetDisplay();
+    logEvent('Session reset.');
+  }
+
+  // Widget Button Controls
+  function toggleWidgetLock() {
+    isLocked = !isLocked;
+    const btn = document.getElementById('w-btn-lock');
+    const widget = document.getElementById('eagle-widget');
+    btn.innerText = isLocked ? 'L' : 'U';
+    widget.classList.toggle('locked', isLocked);
+    logEvent(isLocked ? 'Widget locked.' : 'Widget unlocked.');
+  }
+
+  function toggleWidgetPause() {
+    isPaused = !isPaused;
+    const btn = document.getElementById('w-btn-pause');
+    btn.innerText = isPaused ? '▶' : 'II';
+    if (isPaused) {
+      setState(STATES.PAUSED);
+      logEvent('Timer paused.');
+    } else {
+      setState(STATES.RUNNING);
+      logEvent('Timer resumed.');
+    }
+  }
+
+  function widgetResetClick() {
+    workSecondsLeft = totalWorkSeconds;
+    setState(STATES.RUNNING);
+    updateWidgetDisplay();
+    logEvent('Work timer reset via widget RST button.');
+  }
+
+  function toggleLogModal() {
+    const modal = document.getElementById('log-modal');
+    modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+  }
+
+  // Draggable Widget Implementation
+  const widget = document.getElementById('eagle-widget');
+  let isDragging = false, startX, startY, origLeft, origTop;
+
+  widget.addEventListener('mousedown', (e) => {
+    if (isLocked || e.target.tagName === 'BUTTON') return;
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    origLeft = widget.offsetLeft;
+    origTop = widget.offsetTop;
+    document.body.style.cursor = 'move';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    widget.style.left = `${Math.max(0, origLeft + dx)}px`;
+    widget.style.top = `${Math.max(50, origTop + dy)}px`;
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      document.body.style.cursor = 'default';
+      logEvent(`Widget moved to (${widget.offsetLeft}, ${widget.offsetTop}). Saved to DB.`);
+    }
+  });
+
+  // Initial render
+  updateWidgetDisplay();
+</script>
+</body>
+</html>

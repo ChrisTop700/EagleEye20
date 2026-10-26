@@ -96,7 +96,7 @@ end
 
 local function ShowTooltip(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:AddLine("Eagle Eye 20/20/20", 0, 0.8, 0.6)
+    GameTooltip:AddLine("Eagle Eye 20/20/20 |cff888888v" .. (ns.version or "0.11.0-alpha") .. "|r", 0, 0.8, 0.6)
     GameTooltip:AddLine(StatusLine(), 0.9, 0.9, 0.92)
     GameTooltip:AddLine("Left-click: options", 0.65, 0.65, 0.7)
     GameTooltip:AddLine("Right-click: pause / resume", 0.65, 0.65, 0.7)
@@ -212,7 +212,7 @@ end
 function EagleEye20_OnAddonCompartmentEnter(_, frame)
     if not frame then return end
     GameTooltip:SetOwner(frame, "ANCHOR_LEFT")
-    GameTooltip:AddLine("Eagle Eye 20/20/20", 0, 0.8, 0.6)
+    GameTooltip:AddLine("Eagle Eye 20/20/20 |cff888888v" .. (ns.version or "0.11.0-alpha") .. "|r", 0, 0.8, 0.6)
     GameTooltip:AddLine(StatusLine(), 0.9, 0.9, 0.92)
     GameTooltip:Show()
 end

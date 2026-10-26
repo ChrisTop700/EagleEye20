@@ -3,6 +3,8 @@
 ## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WoW Forever.
 ## Author: Chris
 ## Version: 0.11.0-alpha
+## X-Version: 0.11.0-alpha
+## X-Category: Combat
 ## Category: Combat
 ## SavedVariables: EagleEye20DB
 ## IconTexture: Interface\AddOns\EagleEye20\Textures\Icon

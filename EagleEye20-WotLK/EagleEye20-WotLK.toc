@@ -1,0 +1,18 @@
+## Interface: 30400
+## Title: Eagle Eye |cff00cc9920/20/20|r
+## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WotLK 3.3.5a.
+## Author: Chris
+## Version: 0.20.0-alpha-wotlk
+## X-Version: 0.20.0-alpha-wotlk
+## X-Category: Combat
+## Category: Combat
+## SavedVariables: EagleEye20DB
+## IconTexture: Interface\AddOns\EagleEye20-WotLK\Textures\Icon
+
+Core.lua
+Events.lua
+UI_Widget.lua
+UI_Minimap.lua
+UI_Blackout.lua
+UI_Log.lua
+UI_Config.lua

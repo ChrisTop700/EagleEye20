@@ -1,0 +1,13 @@
+package-as: EagleEye20
+
+move-folders:
+  EagleEye20: EagleEye20
+
+ignore:
+  - assets
+  - tools
+  - .github
+  - .gitignore
+  - environment.yml
+  - SPEC.md
+  - VALIDATION.md

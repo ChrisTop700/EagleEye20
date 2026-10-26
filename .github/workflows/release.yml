@@ -45,4 +45,5 @@ jobs:
           files: |
             EagleEye20-${{ steps.vars.outputs.tag }}.zip
             EagleEye20.zip
+          prerelease: ${{ contains(steps.vars.outputs.tag, 'beta') || contains(steps.vars.outputs.tag, 'alpha') }}
           generate_release_notes: true

@@ -1,21 +1,11 @@
 <Bindings>
-    <Binding name="EAGLEEYE20_CONFIRMSAFE" header="EAGLEEYE20" runOnUp="false">
-        if EagleEye20 and EagleEye20.ConfirmSafe then
-            EagleEye20.ConfirmSafe()
-        end
+    <Binding name="EAGLEEYE20_CONFIRMSAFE" category="BINDING_HEADER_EAGLEEYE20">
+        EagleEye20_ConfirmSafe_Binding()
     </Binding>
-    <Binding name="EAGLEEYE20_SNOOZE" runOnUp="false">
-        if EagleEye20 and EagleEye20.Snooze then
-            EagleEye20.Snooze()
-        end
+    <Binding name="EAGLEEYE20_SNOOZE" category="BINDING_HEADER_EAGLEEYE20">
+        EagleEye20_Snooze_Binding()
     </Binding>
-    <Binding name="EAGLEEYE20_PAUSERESUME" runOnUp="false">
-        if EagleEye20 then
-            if EagleEye20.state == EagleEye20.PAUSED then
-                EagleEye20.ResumeTimer()
-            else
-                EagleEye20.PauseTimer()
-            end
-        end
+    <Binding name="EAGLEEYE20_PAUSERESUME" category="BINDING_HEADER_EAGLEEYE20">
+        EagleEye20_PauseResume_Binding()
     </Binding>
 </Bindings>

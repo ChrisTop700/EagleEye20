@@ -1,5 +1,7 @@
 local AddonName, ns = ...
 
+local SetSolidColor = ns.SetSolidColor
+
 local PANEL_WIDTH, PANEL_HEIGHT = 360, 300
 local VISIBLE_ROWS = 12
 local ROW_HEIGHT = 14
@@ -211,6 +213,175 @@ local function CreateWindow()
         self:SetBackdropColor(0.24, 0.24, 0.29, 1.0)
     end)
     clearBtn:SetScript("OnLeave", function(self)
+        self:SetBackdropColor(0.16, 0.16, 0.20, 1.0)
+    end)
+
+    local exportFrame
+    local function ShowExportDialog()
+        if not exportFrame then
+            local ef = ns.NewFrame("Frame", "EagleEye20ExportDialog", UIParent)
+            ef:SetWidth(480)
+            ef:SetHeight(330)
+            ef:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
+            ef:SetFrameStrata("DIALOG")
+            ef:SetFrameLevel(250)
+            ef:SetMovable(true)
+            ef:EnableMouse(true)
+            ef:RegisterForDrag("LeftButton")
+            ef:SetClampedToScreen(true)
+            ef:SetScript("OnDragStart", ef.StartMoving)
+            ef:SetScript("OnDragStop", ef.StopMovingOrSizing)
+            if ef.SetBackdrop then
+                pcall(ef.SetBackdrop, ef, {
+                    bgFile = "Interface\\Buttons\\WHITE8X8",
+                    edgeFile = "Interface\\Buttons\\WHITE8X8",
+                    edgeSize = 1,
+                    insets = { left = 0, right = 0, top = 0, bottom = 0 },
+                })
+                pcall(ef.SetBackdropColor, ef, 0.08, 0.08, 0.10, 0.96)
+                pcall(ef.SetBackdropBorderColor, ef, 0.25, 0.25, 0.30, 1.0)
+            end
+
+            local bg = ef:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints(ef)
+            SetSolidColor(bg, 0.08, 0.08, 0.10, 0.96)
+            ef.bg = bg
+
+            -- Crisp border lines matching log window
+            local function AddBorder(p1, r1, p2, r2, w, h)
+                local l = ef:CreateTexture(nil, "BORDER")
+                l:SetPoint(p1, ef, r1, 0, 0)
+                l:SetPoint(p2, ef, r2, 0, 0)
+                if w then l:SetWidth(w) end
+                if h then l:SetHeight(h) end
+                SetSolidColor(l, 0.25, 0.25, 0.30, 1.0)
+            end
+            AddBorder("TOPLEFT", "TOPLEFT", "TOPRIGHT", "TOPRIGHT", nil, 1)
+            AddBorder("BOTTOMLEFT", "BOTTOMLEFT", "BOTTOMRIGHT", "BOTTOMRIGHT", nil, 1)
+            AddBorder("TOPLEFT", "TOPLEFT", "BOTTOMLEFT", "BOTTOMLEFT", 1, nil)
+            AddBorder("TOPRIGHT", "TOPRIGHT", "BOTTOMRIGHT", "BOTTOMRIGHT", 1, nil)
+
+            local icon = ef:CreateTexture(nil, "ARTWORK")
+            icon:SetTexture(ns.MEDIA .. "Icon")
+            icon:SetWidth(16)
+            icon:SetHeight(16)
+            icon:SetPoint("TOPLEFT", ef, "TOPLEFT", 12, -8)
+
+            local title = ef:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            title:SetPoint("TOPLEFT", ef, "TOPLEFT", 33, -10)
+            title:SetText("EAGLE EYE 20/20/20  -  REPORT EXPORT")
+            title:SetTextColor(0.0, 0.8, 0.6)
+
+            local close = ns.NewFrame("Button", nil, ef)
+            close:SetWidth(20)
+            close:SetHeight(20)
+            close:SetPoint("TOPRIGHT", ef, "TOPRIGHT", -6, -6)
+            if close.SetBackdrop then
+                pcall(close.SetBackdrop, close, {
+                    bgFile = "Interface\\Buttons\\WHITE8X8",
+                    edgeFile = "Interface\\Buttons\\WHITE8X8",
+                    edgeSize = 1,
+                })
+                pcall(close.SetBackdropColor, close, 0.16, 0.16, 0.20, 1.0)
+                pcall(close.SetBackdropBorderColor, close, 0.30, 0.30, 0.35, 1.0)
+            end
+            local closeBg = close:CreateTexture(nil, "BACKGROUND")
+            closeBg:SetAllPoints(close)
+            SetSolidColor(closeBg, 0.16, 0.16, 0.20, 1.0)
+            local closeText = close:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            closeText:SetPoint("CENTER")
+            closeText:SetText("X")
+            close:SetScript("OnClick", function() ef:Hide() end)
+            close:SetScript("OnEnter", function(self)
+                if self.SetBackdropColor then pcall(self.SetBackdropColor, self, 0.35, 0.18, 0.18, 1.0) end
+                SetSolidColor(closeBg, 0.35, 0.18, 0.18, 1.0)
+            end)
+            close:SetScript("OnLeave", function(self)
+                if self.SetBackdropColor then pcall(self.SetBackdropColor, self, 0.16, 0.16, 0.20, 1.0) end
+                SetSolidColor(closeBg, 0.16, 0.16, 0.20, 1.0)
+            end)
+
+            local note = ef:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            note:SetPoint("TOPLEFT", ef, "TOPLEFT", 12, -32)
+            note:SetText("Press Ctrl+C to copy. (Future: Export format options)")
+            note:SetTextColor(0.65, 0.65, 0.70)
+
+            local inset = ns.NewFrame("Frame", nil, ef)
+            inset:SetPoint("TOPLEFT", ef, "TOPLEFT", 12, -50)
+            inset:SetPoint("BOTTOMRIGHT", ef, "BOTTOMRIGHT", -12, 12)
+            if inset.SetBackdrop then
+                pcall(inset.SetBackdrop, inset, {
+                    bgFile = "Interface\\Buttons\\WHITE8X8",
+                    edgeFile = "Interface\\Buttons\\WHITE8X8",
+                    edgeSize = 1,
+                })
+                pcall(inset.SetBackdropColor, inset, 0.04, 0.04, 0.06, 0.95)
+                pcall(inset.SetBackdropBorderColor, inset, 0.20, 0.20, 0.25, 1.0)
+            end
+            local inBg = inset:CreateTexture(nil, "BACKGROUND")
+            inBg:SetAllPoints(inset)
+            SetSolidColor(inBg, 0.04, 0.04, 0.06, 0.95)
+
+            local sf = CreateFrame("ScrollFrame", "EagleEye20ExportScroll", inset, "UIPanelScrollFrameTemplate")
+            sf:SetPoint("TOPLEFT", inset, "TOPLEFT", 8, -6)
+            sf:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 6)
+
+            local eb = CreateFrame("EditBox", "EagleEye20ExportBox", sf)
+            eb:SetMultiLine(true)
+            eb:SetAutoFocus(true)
+            eb:SetFontObject("GameFontHighlightSmall")
+            eb:SetWidth(420)
+            eb:SetHeight(240)
+            eb:SetScript("OnEscapePressed", function() ef:Hide() end)
+            sf:SetScrollChild(eb)
+
+            ef.editBox = eb
+            exportFrame = ef
+        end
+
+        local lines = {}
+        table.insert(lines, "=== Eagle Eye 20/20/20 - Report Export ===")
+        table.insert(lines, "Generated: " .. date("%Y-%m-%d %H:%M:%S"))
+        if ns.db and ns.db.stats then
+            local s = ns.db.stats
+            table.insert(lines, string.format("Completed: %d | Snoozed: %d | Combat Interrupted: %d | Cancelled: %d",
+                s.completed or 0, s.snoozed or 0, s.combatInterrupted or 0, s.manualAborted or 0))
+            table.insert(lines, "------------------------------------------------------------")
+        end
+        if ns.db and ns.db.logs then
+            for i = #ns.db.logs, 1, -1 do
+                local e = ns.db.logs[i]
+                table.insert(lines, string.format("[%s] %-18s %s", e.timestamp or "", e.event or "", e.detail or ""))
+            end
+        end
+        local text = table.concat(lines, "\n")
+        exportFrame.editBox:SetText(text)
+        exportFrame.editBox:HighlightText()
+        exportFrame:Show()
+        exportFrame:Raise()
+    end
+
+    local exportBtn = ns.NewFrame("Button", nil, f)
+    exportBtn:SetWidth(70)
+    exportBtn:SetHeight(20)
+    exportBtn:SetPoint("LEFT", clearBtn, "RIGHT", 6, 0)
+    if exportBtn.SetBackdrop then
+        pcall(exportBtn.SetBackdrop, exportBtn, {
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = 1,
+        })
+        pcall(exportBtn.SetBackdropColor, exportBtn, 0.16, 0.16, 0.20, 1.0)
+        pcall(exportBtn.SetBackdropBorderColor, exportBtn, 0.30, 0.30, 0.35, 1.0)
+    end
+    local exportText = exportBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    exportText:SetPoint("CENTER")
+    exportText:SetText("Export")
+    exportBtn:SetScript("OnClick", ShowExportDialog)
+    exportBtn:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(0.24, 0.24, 0.29, 1.0)
+    end)
+    exportBtn:SetScript("OnLeave", function(self)
         self:SetBackdropColor(0.16, 0.16, 0.20, 1.0)
     end)
 

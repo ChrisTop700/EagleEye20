@@ -24,6 +24,12 @@ local FONT_ITEMS = {
     { text = "Morpheus", value = "Fonts\\MORPHEUS.TTF" },
 }
 
+local MINIMAP_SHAPE_ITEMS = {
+    { text = "Auto-detect shape", value = "AUTO" },
+    { text = "Round minimap", value = "ROUND" },
+    { text = "Square minimap", value = "SQUARE" },
+}
+
 local SOUND_ITEMS = {
     { text = "Raid Warning", value = "Sound\\Interface\\RaidWarning.wav" },
     { text = "Ready Check", value = "Sound\\Interface\\ReadyCheck.wav" },
@@ -35,6 +41,29 @@ local SOUND_ITEMS = {
     { text = "Auction Window", value = "Sound\\Interface\\AuctionWindowOpen.wav" },
     { text = "Error / Buzz", value = "Sound\\Interface\\Error.wav" },
     { text = "None (Mute)", value = "" },
+}
+
+local SetSolidColor = ns.SetSolidColor
+
+StaticPopupDialogs = StaticPopupDialogs or {}
+StaticPopupDialogs["EAGLEEYE20_CONFIRM_OVERWRITE"] = {
+    text = "Key [%s] is already bound to:\n\"%s\"\n\nDo you want to overwrite it and bind to Safe Now?",
+    button1 = YES or "Yes",
+    button2 = NO or "No",
+    OnAccept = function(self)
+        if self.applyFunc then
+            self.applyFunc()
+        end
+    end,
+    OnCancel = function(self)
+        if self.cancelFunc then
+            self.cancelFunc()
+        end
+    end,
+    timeout = 0,
+    whileDead = 1,
+    hideOnEscape = 1,
+    preferredIndex = 3,
 }
 
 local function Profile()
@@ -98,20 +127,23 @@ local function MakeSlider(parent, refs, id, label, x, y, minv, maxv, step, fmt, 
     local name = "EagleEye20Slider" .. id
     local s = Make("Slider", name, parent,
         "OptionsSliderTemplate", "UISliderTemplate", "MinimalSliderTemplate")
-    s:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
-    s:SetWidth(width or 165)
+    s:ClearAllPoints()
+    s:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 18)
+    s:SetWidth(width or 175)
 
-    local labelText = (name and _G[name .. "Text"]) or s:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    if not labelText:GetPoint() then
-        labelText:SetPoint("BOTTOMLEFT", s, "TOPLEFT", 0, 2)
+    if name and _G[name .. "Text"] then
+        _G[name .. "Text"]:Hide()
     end
-    labelText:SetWidth((width or 165) + 30)
-    labelText:SetJustifyH("LEFT")
-
     local low = name and _G[name .. "Low"]
     local high = name and _G[name .. "High"]
     if low then low:SetText("") end
     if high then high:SetText("") end
+
+    local labelText = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    labelText:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+    labelText:SetWidth((width or 175) + 30)
+    labelText:SetJustifyH("LEFT")
+    labelText:SetTextColor(0.9, 0.9, 0.9)
 
     local updating = false
 
@@ -288,21 +320,60 @@ local function HookPanelLifecycle(panel)
 end
 
 -- Wraps a page's controls in a scroll frame so the page still fits when the
--- Settings canvas is smaller than the content.
+-- Settings canvas is smaller than the content, with full mouse wheel scrolling.
 local function ScrollablePanel(panel, height)
-    local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+    local scrollName = (panel:GetName() or "EagleEye20Panel") .. "Scroll"
+    local scroll = CreateFrame("ScrollFrame", scrollName, panel, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, 0)
     scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -30, 10)
-    -- A ScrollFrame in this template carries its own scrollbar child. Neither
-    -- may take input unless the page is actually the visible settings canvas.
-    scroll:EnableMouse(false)
-    scroll:EnableMouseWheel(false)
 
-    local content = CreateFrame("Frame", nil, scroll)
+    local scrollBar = _G[scrollName .. "ScrollBar"]
+    scroll.ScrollBar = scrollBar
+
+    local function OnScrollWheel(self, delta)
+        local sb = scroll.ScrollBar
+        if sb then
+            local minVal, maxVal = sb:GetMinMaxValues()
+            if maxVal and maxVal > (minVal or 0) then
+                local current = sb:GetValue() or 0
+                local step = 36
+                if delta > 0 then
+                    sb:SetValue(math.max(minVal, current - step))
+                else
+                    sb:SetValue(math.min(maxVal, current + step))
+                end
+                return
+            end
+        end
+
+        local current = scroll:GetVerticalScroll() or 0
+        local maxRange = scroll:GetVerticalScrollRange() or 0
+        local step = 36
+        if delta > 0 then
+            scroll:SetVerticalScroll(math.max(0, current - step))
+        else
+            scroll:SetVerticalScroll(math.min(maxRange, current + step))
+        end
+    end
+
+    scroll:EnableMouseWheel(true)
+    scroll:SetScript("OnMouseWheel", OnScrollWheel)
+
+    local content = CreateFrame("Frame", scrollName .. "Content", scroll)
     content:SetSize(580, height)
     scroll:SetScrollChild(content)
     scroll:SetScript("OnSizeChanged", function(_, width)
         if width and width > 0 then content:SetWidth(width) end
+    end)
+
+    content:EnableMouseWheel(true)
+    content:SetScript("OnMouseWheel", function(_, delta)
+        OnScrollWheel(scroll, delta)
+    end)
+
+    panel:EnableMouseWheel(true)
+    panel:SetScript("OnMouseWheel", function(_, delta)
+        OnScrollWheel(scroll, delta)
     end)
 
     panel.ScrollFrame = scroll
@@ -326,66 +397,140 @@ end
 local function RegisterPanel(panel, parentCategory)
     if Settings and Settings.RegisterCanvasLayoutCategory then
         if parentCategory then
-            return Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, panel.name)
+            local sub = Settings.RegisterCanvasLayoutSubcategory(parentCategory, panel, panel.name)
+            if Settings.RegisterAddOnCategory then
+                Settings.RegisterAddOnCategory(sub)
+            end
+            return sub
         end
         local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-        Settings.RegisterAddOnCategory(category)
+        if Settings.RegisterAddOnCategory then
+            Settings.RegisterAddOnCategory(category)
+        end
         return category
     end
     if InterfaceOptions_AddCategory then
         InterfaceOptions_AddCategory(panel)
+        return panel
     end
+    return panel
 end
 
 local function CreateMainPanel()
     local panel, refs = CreatePage("EagleEye20MainOptions", "Eagle Eye 20/20/20")
 
-    local page = ScrollablePanel(panel, 490)
+    local page = ScrollablePanel(panel, 720)
 
-    -- Header (emblem, title, subtitle on left; compact logo on right)
-    local emblem = page:CreateTexture(nil, "ARTWORK")
-    emblem:SetTexture(ns.MEDIA .. "Icon")
-    emblem:SetWidth(32)
-    emblem:SetHeight(32)
-    emblem:SetPoint("TOPLEFT", page, "TOPLEFT", 16, -8)
+    -- Header: 48x48 Addon Icon with Title and Subtitle (Logo kept off options)
+    local icon = page:CreateTexture(nil, "ARTWORK")
+    icon:SetTexture(ns.MEDIA .. "Icon")
+    icon:SetWidth(48)
+    icon:SetHeight(48)
+    icon:SetPoint("TOPLEFT", page, "TOPLEFT", 16, -10)
 
     local title = page:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", emblem, "TOPRIGHT", 10, -2)
+    title:SetPoint("TOPLEFT", icon, "TOPRIGHT", 14, -4)
     title:SetText("Eagle Eye 20/20/20")
 
     local subtitle = page:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    subtitle:SetText("Combat-aware eye break timer. Pick a preset or customize your schedule.")
+    subtitle:SetText("Combat-aware eye strain timer. 20 min work, 20 sec rest, 20 ft away.")
     subtitle:SetTextColor(0.7, 0.7, 0.74)
-
-    -- Sized and positioned inside header band so it never overlaps controls
-    local logo = page:CreateTexture(nil, "ARTWORK")
-    logo:SetTexture(ns.MEDIA .. "Logo")
-    logo:SetWidth(48)
-    logo:SetHeight(48)
-    logo:SetPoint("TOPRIGHT", page, "TOPRIGHT", -20, -6)
-    logo:SetAlpha(0.90)
 
     -- Symmetrical 3-Column Coordinates
     local col1_x = 16
-    local col2_x = 206
-    local col3_x = 396
-    local COL_W = 165
-    local DROP_W = 145
+    local col2_x = 210
+    local col3_x = 404
+    local COL_W = 175
+    local DROP_W = 155
 
-    -- SECTION 1: Status & Behavior Checkboxes
-    -- Row 1 (y = -64)
-    MakeCheckbox(page, refs, "Enabled", "Enable timer", col1_x, -64,
+    local function MakeSectionHeader(titleText, y)
+        local h = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        h:SetPoint("TOPLEFT", page, "TOPLEFT", col1_x, y)
+        h:SetText(titleText)
+        h:SetTextColor(0.0, 0.85, 0.65)
+
+        local line = page:CreateTexture(nil, "ARTWORK")
+        line:SetPoint("TOPLEFT", h, "BOTTOMLEFT", 0, -3)
+        line:SetSize(568, 1)
+        SetSolidColor(line, 0.25, 0.25, 0.30, 0.6)
+        return h
+    end
+
+    -- =========================================================================
+    -- GROUP 1: AUTOMATION & SAFETY
+    -- =========================================================================
+    MakeSectionHeader("AUTOMATION & SAFETY", -76)
+
+    MakeCheckbox(page, refs, "Enabled", "Enable timer", col1_x, -102,
         function() return Profile().enabled end,
         function(v) ns.SetEnabled(v) end,
-        "Turns the whole addon on or off.")
+        "Turns the whole eye strain timer on or off.")
 
-    MakeCheckbox(page, refs, "AFK", "Auto-reset after 60s AFK", col2_x, -64,
+    MakeCheckbox(page, refs, "AFK", "Auto-reset after 60s AFK", col2_x, -102,
         function() return Profile().autoResetOnAFK end,
         SetProfileValue("autoResetOnAFK"),
-        "Resets the work timer if the player has been flagged AFK for a minute or more.")
+        "Resets the work timer if you have been flagged AFK for a minute or more.")
 
-    MakeCheckbox(page, refs, "ShowWidget", "Show floating countdown widget", col3_x, -64,
+    MakeCheckbox(page, refs, "Taxi", "Prompt on flight paths", col3_x, -102,
+        function() return Profile().promptOnTaxi end,
+        SetProfileValue("promptOnTaxi"),
+        "Offers a Take Break Now button when flying with under 5 minutes left.")
+
+    MakeCheckbox(page, refs, "Inn", "Auto-start in sanctuary/inn", col1_x, -134,
+        function() return Profile().autoStartInInn end,
+        SetProfileValue("autoStartInInn"),
+        "Starts the eye break blackout automatically when due inside an inn or rested city.")
+
+    MakeDropdown(page, refs, "Abort", "When break cancelled", col1_x, -168, DROP_W,
+        ABORT_ITEMS,
+        function() return Profile().abortAction end,
+        SetProfileValue("abortAction"))
+
+    -- =========================================================================
+    -- GROUP 2: TIMER PRESETS & DURATIONS
+    -- =========================================================================
+    MakeSectionHeader("TIMER PRESETS & DURATIONS", -226)
+
+    MakeDropdown(page, refs, "Preset", "Timer preset (work / distance / rest)", col1_x, -254, DROP_W,
+        PRESET_ITEMS,
+        function() return Profile().preset end,
+        function(v)
+            ns.SetPreset(v)
+            RefreshPanel(panel)
+        end)
+
+    MakeSlider(page, refs, "CustomWork", "Custom work duration", col2_x, -254, 1, 120, 1,
+        function(v) return string.format("Work duration: %d min", v) end,
+        function() return Profile().customWorkMinutes end,
+        SetCustomValue("customWorkMinutes"), COL_W)
+
+    MakeSlider(page, refs, "CustomRest", "Custom rest duration", col3_x, -254, 5, 120, 5,
+        function(v) return string.format("Rest duration: %d sec", v) end,
+        function() return Profile().customRestSeconds end,
+        SetCustomValue("customRestSeconds"), COL_W)
+
+    MakeSlider(page, refs, "CustomDistance", "Custom distance", col1_x, -312, 1, 100, 1,
+        function(v) return string.format("Distance: %d ft", v) end,
+        function() return Profile().customDistanceFeet end,
+        SetCustomValue("customDistanceFeet"), COL_W)
+
+    MakeSlider(page, refs, "Warning", "Warning lead time", col2_x, -312, 10, 300, 5,
+        function(v) return string.format("Warning lead: %d sec", v) end,
+        function() return Profile().warningDuration end,
+        SetProfileValue("warningDuration"), COL_W)
+
+    MakeSlider(page, refs, "Snooze", "Snooze step", col3_x, -312, 15, 300, 15,
+        function(v) return string.format("Snooze step: %d sec", v) end,
+        function() return Profile().snoozeDuration end,
+        SetProfileValue("snoozeDuration"), COL_W)
+
+    -- =========================================================================
+    -- GROUP 3: DISPLAY & APPEARANCE (Widget & Minimap)
+    -- =========================================================================
+    MakeSectionHeader("DISPLAY & APPEARANCE", -374)
+
+    MakeCheckbox(page, refs, "ShowWidget", "Show floating widget", col1_x, -402,
         function() return Profile().showWidget ~= false end,
         function(v)
             if not ns.db then return end
@@ -395,24 +540,12 @@ local function CreateMainPanel()
         end,
         "Displays the compact draggable floating countdown timer frame on your screen.")
 
-    -- Row 2 (y = -92)
-    MakeCheckbox(page, refs, "Inn", "Auto-start while resting", col1_x, -92,
-        function() return Profile().autoStartInInn end,
-        SetProfileValue("autoStartInInn"),
-        "Starts the blackout automatically when the break is due inside an inn or city.")
-
-    MakeCheckbox(page, refs, "Taxi", "Prompt on flight paths", col2_x, -92,
-        function() return Profile().promptOnTaxi end,
-        SetProfileValue("promptOnTaxi"),
-        "Shows a Take Break Now button when flying with under 5 minutes left.")
-
-    MakeCheckbox(page, refs, "Locked", "Lock widget position", col3_x, -92,
+    MakeCheckbox(page, refs, "Locked", "Lock widget position", col2_x, -402,
         function() return Profile().locked end,
         SetProfileValue("locked"),
-        "Prevents dragging the floating mini countdown widget with the mouse.")
+        "Prevents dragging the floating countdown timer frame with the mouse.")
 
-    -- Row 3 (y = -120)
-    MakeCheckbox(page, refs, "Minimap", "Show minimap button", col2_x, -120,
+    MakeCheckbox(page, refs, "Minimap", "Show minimap button", col3_x, -402,
         function() return Profile().showMinimap end,
         function(v)
             if not ns.db then return end
@@ -420,15 +553,26 @@ local function CreateMainPanel()
             if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
             ns.Fire("SettingsChanged")
         end,
-        "Adds the Eagle Eye icon next to the minimap.")
+        "Adds the Eagle Eye icon next to your minimap.")
 
-    -- SECTION 2: Top Dropdowns Row (y = -154)
-    MakeDropdown(page, refs, "Preset", "Timer preset (work / distance / rest)", col1_x, -154, DROP_W,
-        PRESET_ITEMS,
-        function() return Profile().preset end,
-        function(v) ns.SetPreset(v) end)
+    MakeSlider(page, refs, "Scale", "Widget scale", col1_x, -438, 0.6, 1.5, 0.05,
+        function(v) return string.format("Widget scale: %.2fx", v) end,
+        function() return Profile().widgetScale end,
+        SetProfileValue("widgetScale", function()
+            if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
+        end), COL_W)
 
-    MakeDropdown(page, refs, "FontFace", "Countdown font", col3_x, -154, DROP_W,
+    MakeDropdown(page, refs, "MinimapShape", "Minimap shape", col2_x, -438, DROP_W,
+        MINIMAP_SHAPE_ITEMS,
+        function() return Profile().minimapShape or "AUTO" end,
+        function(v)
+            if not ns.db then return end
+            ns.db.profile.minimapShape = v
+            if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
+            ns.Fire("SettingsChanged")
+        end)
+
+    MakeDropdown(page, refs, "FontFace", "Countdown font", col1_x, -496, DROP_W,
         FONT_ITEMS,
         function() return Profile().fontFace end,
         function(v)
@@ -438,54 +582,14 @@ local function CreateMainPanel()
             ns.Fire("SettingsChanged")
         end)
 
-    -- SECTION 3: Primary Sliders Row (y = -215)
-    MakeSlider(page, refs, "CustomWork", "Custom work duration", col1_x, -215, 1, 120, 1,
-        function(v) return string.format("Work duration: %d min", v) end,
-        function() return Profile().customWorkMinutes end,
-        SetCustomValue("customWorkMinutes"), COL_W)
-
-    MakeSlider(page, refs, "Warning", "Warning lead time", col2_x, -215, 10, 300, 5,
-        function(v) return string.format("Warning lead: %d sec", v) end,
-        function() return Profile().warningDuration end,
-        SetProfileValue("warningDuration"), COL_W)
-
-    MakeSlider(page, refs, "Scale", "Widget scale", col3_x, -215, 0.6, 1.5, 0.05,
-        function(v) return string.format("Widget scale: %.2fx", v) end,
-        function() return Profile().widgetScale end,
-        SetProfileValue("widgetScale", function()
-            if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
-        end), COL_W)
-
-    -- SECTION 4: Secondary Sliders Row (y = -268)
-    MakeSlider(page, refs, "CustomRest", "Custom rest duration", col1_x, -268, 5, 120, 5,
-        function(v) return string.format("Rest duration: %d sec", v) end,
-        function() return Profile().customRestSeconds end,
-        SetCustomValue("customRestSeconds"), COL_W)
-
-    MakeSlider(page, refs, "Snooze", "Snooze step", col2_x, -268, 15, 300, 15,
-        function(v) return string.format("Snooze step: %d sec", v) end,
-        function() return Profile().snoozeDuration end,
-        SetProfileValue("snoozeDuration"), COL_W)
-
-    MakeSlider(page, refs, "FontSize", "Countdown font size", col3_x, -268, 10, 24, 1,
+    MakeSlider(page, refs, "FontSize", "Countdown font size", col2_x, -496, 10, 24, 1,
         function(v) return string.format("Countdown font size: %d", v) end,
         function() return Profile().fontSize end,
         SetProfileValue("fontSize", function()
             if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
         end), COL_W)
 
-    -- SECTION 5: Distance & Bottom Dropdowns Row (y = -322)
-    MakeSlider(page, refs, "CustomDistance", "Custom distance", col1_x, -322, 1, 100, 1,
-        function(v) return string.format("Distance: %d ft", v) end,
-        function() return Profile().customDistanceFeet end,
-        SetCustomValue("customDistanceFeet"), COL_W)
-
-    MakeDropdown(page, refs, "Abort", "When break cancelled", col2_x, -322, DROP_W,
-        ABORT_ITEMS,
-        function() return Profile().abortAction end,
-        SetProfileValue("abortAction"))
-
-    MakeDropdown(page, refs, "Outline", "Countdown outline", col3_x, -322, DROP_W,
+    MakeDropdown(page, refs, "Outline", "Countdown outline", col3_x, -496, DROP_W,
         OUTLINE_ITEMS,
         function()
             local v = Profile().fontOutline
@@ -497,54 +601,152 @@ local function CreateMainPanel()
             ns.Fire("SettingsChanged")
         end)
 
-    -- SECTION 6: Action Buttons Row (y = -384)
-    MakePanelButton(page, "Test Break", col1_x, -384, COL_W, function()
+    -- =========================================================================
+    -- GROUP 4: ACTIONS & KEYBINDINGS
+    -- =========================================================================
+    MakeSectionHeader("ACTIONS & KEYBINDINGS", -562)
+
+    MakePanelButton(page, "Test Break", col1_x, -588, COL_W, function()
         ns.TestBreak()
     end)
 
-    MakePanelButton(page, "Open Log", col2_x, -384, COL_W, function()
-        if ns.ToggleLog then ns.ToggleLog() end
-    end)
-
-    MakePanelButton(page, "Show / Center Widget", col3_x, -384, COL_W, function()
+    MakePanelButton(page, "Show / Center Widget", col2_x, -588, COL_W, function()
         if not ns.db then return end
         local p = ns.db.profile
         p.widgetPoint = "CENTER"
         p.widgetRelPoint = "CENTER"
         p.widgetX = 0
-        p.widgetY = 260
+        p.widgetY = 0
         p.widgetScale = 1
         p.showWidget = true
+        p.enabled = true
         if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
-        if ns.Widget then
-            ns.Widget:ClearAllPoints()
-            ns.Widget:SetPoint("CENTER", UIParent, "CENTER", 0, 260)
-            ns.Widget:SetFrameStrata("DIALOG")
-            ns.Widget:SetFrameLevel(200)
-            ns.Widget:Show()
-            ns.Widget:Raise()
+        local w = ns.Widget or _G["EagleEye20Widget"]
+        if w then
+            w:ClearAllPoints()
+            w:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+            w:SetScale(1)
+            w:SetFrameStrata("HIGH")
+            w:SetFrameLevel(100)
+            w:Show()
+            w:Raise()
         end
         ns.Fire("SettingsChanged")
         ns.Fire("ConfigRefresh")
         ns.Print("Floating widget centered and shown.")
     end)
 
-    -- SECTION 7: Reset Buttons Row (y = -418)
-    MakePanelButton(page, "Reset Stats", col1_x, -418, COL_W, function()
-        if not ns.db then return end
-        ns.db.stats = { completed = 0, snoozed = 0, combatInterrupted = 0, manualAborted = 0 }
-        ns.session = { completed = 0, snoozed = 0, combatInterrupted = 0, manualAborted = 0 }
-        ns.Log("STATS_RESET", "Statistics cleared")
-        ns.Fire("StatsChanged")
+    -- Interactive Keybind Button with Overwrite Verification
+    local keybindBtn
+    local function GetSafeKeyText()
+        local k1, k2 = GetBindingKey("EAGLEEYE20_CONFIRMSAFE")
+        if k1 and k1 ~= "" then
+            return "Safe Key: [" .. k1 .. "]"
+        end
+        return "Safe Key: [None]"
+    end
+
+    local function ApplySafeKey(k)
+        local old1, old2 = GetBindingKey("EAGLEEYE20_CONFIRMSAFE")
+        if old1 then SetBinding(old1, nil) end
+        if old2 then SetBinding(old2, nil) end
+        SetBinding(k, "EAGLEEYE20_CONFIRMSAFE")
+        if SaveBindings and GetCurrentBindingSet then
+            SaveBindings(GetCurrentBindingSet())
+        end
+        if keybindBtn then keybindBtn:SetText(GetSafeKeyText()) end
+        ns.Print("Safe Now bound to [" .. k .. "]")
+    end
+
+    local bindingListener = CreateFrame("Frame", nil, page)
+    bindingListener:Hide()
+
+    keybindBtn = MakePanelButton(page, GetSafeKeyText(), col3_x, -588, COL_W, function()
+        if bindingListener:IsShown() then
+            bindingListener:Hide()
+            keybindBtn:SetText(GetSafeKeyText())
+            return
+        end
+        keybindBtn:SetText("Press key (ESC cancels)...")
+        bindingListener:Show()
     end)
 
-    MakePanelButton(page, "Reset Minimap", col2_x, -418, COL_W, function()
+    bindingListener:SetScript("OnKeyDown", function(self, key)
+        self:Hide()
+        if key == "ESCAPE" then
+            keybindBtn:SetText(GetSafeKeyText())
+            return
+        end
+        if key == "LSHIFT" or key == "RSHIFT" or key == "LCTRL" or key == "RCTRL" or key == "LALT" or key == "RALT" then
+            return
+        end
+
+        local modifier = ""
+        if IsShiftKeyDown() then modifier = "SHIFT-" .. modifier end
+        if IsControlKeyDown() then modifier = "CTRL-" .. modifier end
+        if IsAltKeyDown() then modifier = "ALT-" .. modifier end
+        local fullKey = modifier .. key
+
+        local existingAction = GetBindingAction(fullKey)
+        if existingAction and existingAction ~= "" and existingAction ~= "EAGLEEYE20_CONFIRMSAFE" then
+            local actionName = _G["BINDING_NAME_" .. existingAction] or existingAction
+            local dialog = StaticPopup_Show("EAGLEEYE20_CONFIRM_OVERWRITE", fullKey, actionName)
+            if dialog then
+                dialog.applyFunc = function()
+                    ApplySafeKey(fullKey)
+                end
+                dialog.cancelFunc = function()
+                    keybindBtn:SetText(GetSafeKeyText())
+                    ns.Print("Keybinding change cancelled.")
+                end
+            else
+                ApplySafeKey(fullKey)
+            end
+        else
+            ApplySafeKey(fullKey)
+        end
+    end)
+    table.insert(refs, function()
+        keybindBtn:SetText(GetSafeKeyText())
+    end)
+
+    MakePanelButton(page, "Open Event Log", col1_x, -620, COL_W, function()
+        if ns.ToggleLog then ns.ToggleLog() end
+    end)
+
+    MakePanelButton(page, "Reset Minimap", col2_x, -620, COL_W, function()
         if not ns.db then return end
         ns.db.profile.minimapAngle = 250
         if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
         ns.Fire("SettingsChanged")
         ns.Fire("ConfigRefresh")
+        ns.Print("Minimap button reset to default angle.")
     end)
+
+    local statsLabel = page:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local function UpdateStats()
+        local s = ns.db and ns.db.stats or {}
+        statsLabel:SetText(string.format("Lifetime Stats:  Completed: %d  |  Snoozed: %d  |  Interrupted: %d  |  Cancelled: %d",
+            s.completed or 0, s.snoozed or 0, s.combatInterrupted or 0, s.manualAborted or 0))
+    end
+
+    MakePanelButton(page, "Reset Stats", col3_x, -620, COL_W, function()
+        if not ns.db then return end
+        ns.db.stats = { completed = 0, snoozed = 0, combatInterrupted = 0, manualAborted = 0 }
+        ns.session = { completed = 0, snoozed = 0, combatInterrupted = 0, manualAborted = 0 }
+        ns.Log("STATS_RESET", "Statistics cleared")
+        ns.Fire("StatsChanged")
+        UpdateStats()
+        ns.Print("Statistics reset: all completed, snoozed, and interrupted counters set to 0.")
+    end)
+
+    -- =========================================================================
+    -- GROUP 5: LIFETIME STATISTICS
+    -- =========================================================================
+    MakeSectionHeader("LIFETIME STATISTICS", -664)
+    statsLabel:SetPoint("TOPLEFT", page, "TOPLEFT", col1_x, -690)
+    statsLabel:SetTextColor(0.0, 0.85, 0.65)
+    table.insert(refs, UpdateStats)
 
     HookPanelLifecycle(panel)
     ns.ConfigPanel = panel
@@ -554,7 +756,7 @@ end
 local function CreateAudioPanel(parentCategory)
     local panel, refs = CreatePage("EagleEye20AudioOptions", "Audio & Announcements")
 
-    local page = ScrollablePanel(panel, 440)
+    local page = ScrollablePanel(panel, 460)
 
     local title = page:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", page, "TOPLEFT", 16, -10)
@@ -562,7 +764,7 @@ local function CreateAudioPanel(parentCategory)
 
     local subtitle = page:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    subtitle:SetText("Sound alert dropdowns and group announcement configuration.")
+    subtitle:SetText("Sound alert dropdowns and chat announcement configuration.")
     subtitle:SetTextColor(0.7, 0.7, 0.74)
 
     -- Column 1: Audio Alerts (x = 16)
@@ -606,20 +808,26 @@ local function CreateAudioPanel(parentCategory)
         SetProfileValue("announceParty"),
         "Sends the start/end message to PARTY chat.")
 
-    MakeCheckbox(page, refs, "AnnounceRaid", "Also announce in raids", 300, -84,
+    MakeCheckbox(page, refs, "AnnounceSolo", "Also display messages in chat when solo", 300, -84,
+        function() return Profile().announceSolo ~= false end,
+        SetProfileValue("announceSolo"),
+        "Prints the start and end messages to your local chat window when playing solo.")
+
+    MakeCheckbox(page, refs, "AnnounceRaid", "Also announce in raids", 300, -112,
         function() return Profile().announceRaid end,
         SetProfileValue("announceRaid"),
-        "Without this, no announcement is sent while in a raid group.")
+        "Without this, no party/raid announcement is sent while in a raid group.")
 
-    MakeCheckbox(page, refs, "AnnounceEnd", "Announce when the break ends", 300, -112,
+    MakeCheckbox(page, refs, "AnnounceEnd", "Announce when the break ends", 300, -140,
         function() return Profile().announceEnd end,
-        SetProfileValue("announceEnd"))
+        SetProfileValue("announceEnd"),
+        "Sends the return message when the rest timer finishes.")
 
-    MakeEditbox(page, refs, "StartMsg", "Break start message ({distance} and {rest} tokens)", 300, -156, 260,
+    MakeEditbox(page, refs, "StartMsg", "Break start message ({distance} and {rest} tokens)", 300, -184, 260,
         function() return Profile().partyStartMsg end,
         function(v) ns.db.profile.partyStartMsg = v end)
 
-    MakeEditbox(page, refs, "EndMsg", "Break end message ({rest} token)", 300, -210, 260,
+    MakeEditbox(page, refs, "EndMsg", "Break end message ({rest} token)", 300, -238, 260,
         function() return Profile().partyEndMsg end,
         function(v) ns.db.profile.partyEndMsg = v end)
 
@@ -627,30 +835,34 @@ local function CreateAudioPanel(parentCategory)
     return RegisterPanel(panel, parentCategory)
 end
 
+function ns.OpenConfig()
+    local mainCat = ns.ConfigCategory
+    if Settings and Settings.OpenToCategory then
+        local cat = mainCat or "Eagle Eye 20/20/20"
+        local id = (type(cat) == "table" and cat.GetID) and cat:GetID() or cat
+        local ok = pcall(Settings.OpenToCategory, id)
+        if not ok then
+            pcall(Settings.OpenToCategory, "Eagle Eye 20/20/20")
+        end
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.1, function()
+                if SettingsPanel and SettingsPanel.GetCurrentCategory then
+                    local current = SettingsPanel:GetCurrentCategory()
+                    if current and current ~= mainCat then
+                        pcall(Settings.OpenToCategory, id)
+                    end
+                end
+            end)
+        end
+        return
+    end
+    if InterfaceOptionsFrame_OpenToCategory then
+        pcall(InterfaceOptionsFrame_OpenToCategory, "Eagle Eye 20/20/20")
+    end
+end
+
 ns.RegisterInit(function()
     local mainCategory = CreateMainPanel()
     CreateAudioPanel(mainCategory)
     ns.ConfigCategory = mainCategory
-
-    ns.OpenConfig = function()
-        if not mainCategory then return end
-        if Settings and Settings.OpenToCategory then
-            local id = mainCategory.GetID and mainCategory:GetID() or mainCategory
-            Settings.OpenToCategory(id)
-            -- The settings frame selects a category on show, which can land after
-            -- this call; repeat once shortly after so our page stays selected.
-            if C_Timer and C_Timer.After then
-                C_Timer.After(0.1, function()
-                    if SettingsPanel and SettingsPanel.GetCurrentCategory then
-                        local current = SettingsPanel:GetCurrentCategory()
-                        if current and current ~= mainCategory then
-                            Settings.OpenToCategory(id)
-                        end
-                    end
-                end)
-            end
-        elseif InterfaceOptionsFrame_OpenToCategory then
-            InterfaceOptionsFrame_OpenToCategory("Eagle Eye 20/20/20")
-        end
-    end
 end)

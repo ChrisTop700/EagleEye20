@@ -12,21 +12,23 @@ local function Announce(msg, requireEndFlag)
     if not ns.db then return end
     local p = ns.db.profile
     if requireEndFlag and not p.announceEnd then return end
-    if not p.announceParty then return end
-
-    local channel
-    if ns.InRaid() then
-        if not p.announceRaid then return end
-        channel = "RAID"
-    elseif ns.InGroup() then
-        channel = "PARTY"
-    else
-        return
-    end
 
     local text = ns.FormatMessage(msg)
-    if text and text ~= "" then
-        SendChatMessage(text, channel)
+    if not text or text == "" then return end
+
+    if ns.InRaid() then
+        if p.announceRaid then
+            SendChatMessage(text, "RAID")
+        end
+    elseif ns.InGroup() then
+        if p.announceParty then
+            SendChatMessage(text, "PARTY")
+        end
+    else
+        -- Solo: print message to player's chat frame if enabled
+        if p.announceSolo ~= false then
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00cc99" .. text .. "|r")
+        end
     end
 end
 

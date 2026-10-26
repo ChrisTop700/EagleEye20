@@ -32,12 +32,22 @@ local function NormalizeAngle(angle)
 end
 
 local function MinimapShape()
+    local p = ns.db and ns.db.profile
+    local setting = p and p.minimapShape or "AUTO"
+    if setting ~= "AUTO" then
+        return setting
+    end
     if GetMinimapShape then
         local ok, shape = pcall(GetMinimapShape)
-        if ok and type(shape) == "string" then return shape end
+        if ok and type(shape) == "string" and shape ~= "" then return shape end
     end
-    -- This client defaults to a square minimap when no addon reports a shape.
-    return "SQUARE"
+    if _G["LeaPlusDB"] and _G["LeaPlusDB"]["SquareMinimap"] == "On" then
+        return "SQUARE"
+    end
+    if _G["ElvUI"] or _G["Tukui"] then
+        return "SQUARE"
+    end
+    return "ROUND"
 end
 
 local function PlaceButton()
@@ -52,18 +62,15 @@ local function PlaceButton()
     if y > 0 then quadrant = quadrant + 2 end
 
     local shape = MinimapShape()
-    local quadTable = MINIMAP_SHAPES[shape] or MINIMAP_SHAPES.SQUARE
-    -- Round minimaps keep the classic overlap with the rim; square ones push
-    -- the button fully outside the map so it never covers the terrain.
-    local gap = (shape == "ROUND") and 5 or (BUTTON_SIZE / 2 + 2)
+    local isRound = (shape == "ROUND")
+    local quadTable = MINIMAP_SHAPES[shape] or (isRound and MINIMAP_SHAPES.ROUND or MINIMAP_SHAPES.SQUARE)
+    local gap = isRound and 2 or (BUTTON_SIZE / 2 + 2)
     local w = (Minimap:GetWidth() or 140) / 2 + gap
     local h = (Minimap:GetHeight() or 140) / 2 + gap
 
-    if quadTable[quadrant] then
+    if isRound or quadTable[quadrant] then
         x, y = x * w, y * h
     else
-        -- Square-ish edge: push the button out along the dominant axis so it
-        -- rides the outside of the border instead of cutting the corner.
         local m = math.max(math.abs(x), math.abs(y))
         if m > 0 then x, y = x / m, y / m end
         x, y = x * w, y * h

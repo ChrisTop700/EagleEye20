@@ -7,8 +7,32 @@ BINDING_NAME_EAGLEEYE20_CONFIRMSAFE = "Confirm Safe / Start Break"
 BINDING_NAME_EAGLEEYE20_SNOOZE = "Snooze Pending Break"
 BINDING_NAME_EAGLEEYE20_PAUSERESUME = "Pause / Resume Timer"
 
+function EagleEye20_ConfirmSafe_Binding()
+    if ns and ns.ConfirmSafe then
+        ns.ConfirmSafe()
+    end
+end
+_G["EagleEye20_ConfirmSafe_Binding"] = EagleEye20_ConfirmSafe_Binding
+
+function EagleEye20_Snooze_Binding()
+    if ns and ns.Snooze then
+        ns.Snooze()
+    end
+end
+_G["EagleEye20_Snooze_Binding"] = EagleEye20_Snooze_Binding
+
+function EagleEye20_PauseResume_Binding()
+    if not ns then return end
+    if ns.state == ns.PAUSED then
+        ns.ResumeTimer()
+    else
+        ns.PauseTimer()
+    end
+end
+_G["EagleEye20_PauseResume_Binding"] = EagleEye20_PauseResume_Binding
+
 ns.name = AddonName
-ns.version = "0.10.0-alpha"
+ns.version = "0.10.0-beta"
 ns.MEDIA = "Interface\\AddOns\\EagleEye20\\Textures\\"
 
 -- The client is a modern (Forever, interface 16001) build. Frames only get
@@ -19,7 +43,14 @@ function ns.Backdrop()
 end
 
 function ns.NewFrame(kind, name, parent)
-    local f = CreateFrame(kind, name, parent, ns.Backdrop())
+    local f
+    if ns.Backdrop() then
+        local ok, res = pcall(CreateFrame, kind, name, parent, ns.Backdrop())
+        if ok and res then f = res end
+    end
+    if not f then
+        f = CreateFrame(kind, name, parent)
+    end
     -- Clients without the backdrop mixin have no SetBackdrop at all; shim the
     -- methods so shared code can call them unconditionally.
     if not f.SetBackdrop then
@@ -28,6 +59,16 @@ function ns.NewFrame(kind, name, parent)
         f.SetBackdropBorderColor = function() end
     end
     return f
+end
+
+function ns.SetSolidColor(tex, r, g, b, a)
+    if not tex then return end
+    if tex.SetColorTexture then
+        tex:SetColorTexture(r, g, b, a or 1)
+    else
+        tex:SetTexture("Interface\\Buttons\\WHITE8X8")
+        tex:SetVertexColor(r, g, b, a or 1)
+    end
 end
 
 function ns.SafeRegister(frame, event)
@@ -135,11 +176,12 @@ local defaults = {
         widgetPoint = "CENTER",
         widgetRelPoint = "CENTER",
         widgetX = 0,
-        widgetY = 260,
+        widgetY = 0,
         widgetScale = 1.0,
         showWidget = true,
         showMinimap = true,
         minimapAngle = 250,
+        minimapShape = "AUTO",
         fontFace = "Fonts\\FRIZQT__.TTF",
         fontSize = 16,
         fontOutline = "OUTLINE",
@@ -154,6 +196,7 @@ local defaults = {
         announceParty = true,
         announceRaid = false,
         announceEnd = false,
+        announceSolo = true,
         partyStartMsg = "[EagleEye20] Casting Eagle Eye {distance} feet away ({rest}s eye break)!",
         partyEndMsg = "[EagleEye20] Back from {rest}s eye break!",
     },
@@ -226,9 +269,14 @@ function ns.ApplyPreset(silent)
         p.workDuration = pre.work
         p.restDuration = pre.rest
         p.distanceFeet = pre.distance
+        p.customWorkMinutes = math.floor(pre.work / 60 + 0.5)
+        p.customRestSeconds = pre.rest
+        p.customDistanceFeet = pre.distance
     end
     if not silent then
         ns.Fire("TimersChanged")
+        ns.Fire("SettingsChanged")
+        ns.Fire("ConfigRefresh")
     end
 end
 
@@ -253,6 +301,8 @@ function ns.SetPreset(key)
     ns.Log("PRESET_CHANGED", string.format("%s (%d min work / %ds rest / %d ft)", preset, math.floor(p.workDuration / 60 + 0.5), p.restDuration, p.distanceFeet))
     ns.Print(string.format("Preset: %s - %d min work, %ds rest, look %d ft away.", preset, math.floor(p.workDuration / 60 + 0.5), p.restDuration, p.distanceFeet))
     ns.Fire("TimersChanged")
+    ns.Fire("SettingsChanged")
+    ns.Fire("ConfigRefresh")
     return true
 end
 
@@ -270,15 +320,15 @@ function ns.FormatMessage(msg)
 end
 
 local SOUND_INFO = {
-    ["Sound\\Interface\\RaidWarning.wav"] = { kit = 8959, alt = "Sound\\Interface\\RaidWarning.ogg" },
-    ["Sound\\Interface\\ReadyCheck.wav"] = { kit = 8960, alt = "Sound\\Interface\\ReadyCheck.ogg" },
-    ["Sound\\Interface\\MapPing.wav"] = { kit = 3175, alt = "Sound\\Interface\\MapPing.ogg" },
-    ["Sound\\Interface\\LevelUp.wav"] = { kit = 618, alt = "Sound\\Interface\\LevelUp.ogg" },
-    ["Sound\\Interface\\AlarmClockWarning3.wav"] = { kit = 11773, alt = "Sound\\Interface\\AlarmClockWarning3.ogg" },
-    ["Sound\\Interface\\iTellMessage.wav"] = { kit = 3081, alt = "Sound\\Interface\\iTellMessage.ogg" },
-    ["Sound\\Interface\\PVPThroughQueue.wav"] = { kit = 8459, alt = "Sound\\Interface\\PVPThroughQueue.ogg" },
-    ["Sound\\Interface\\AuctionWindowOpen.wav"] = { kit = 5389, alt = "Sound\\Interface\\AuctionWindowOpen.ogg" },
-    ["Sound\\Interface\\Error.wav"] = { kit = 8958, alt = "Sound\\Interface\\Error.ogg" },
+    ["Sound\\Interface\\RaidWarning.wav"] = { kit = 8959, kitName = "RAID_WARNING", alt = "Sound\\Interface\\RaidWarning.ogg" },
+    ["Sound\\Interface\\ReadyCheck.wav"] = { kit = 8960, kitName = "READY_CHECK", alt = "Sound\\Interface\\ReadyCheck.ogg" },
+    ["Sound\\Interface\\MapPing.wav"] = { kit = 3175, kitName = "MAP_PING", alt = "Sound\\Interface\\MapPing.ogg" },
+    ["Sound\\Interface\\LevelUp.wav"] = { kit = 618, kitName = "LEVELUP", alt = "Sound\\Interface\\LevelUp.ogg" },
+    ["Sound\\Interface\\AlarmClockWarning3.wav"] = { kit = 12889, kitName = "ALARM_CLOCK_WARNING_3", alt = "Sound\\Interface\\AlarmClockWarning3.ogg" },
+    ["Sound\\Interface\\iTellMessage.wav"] = { kit = 3081, kitName = "TELL_MESSAGE", alt = "Sound\\Interface\\iTellMessage.ogg" },
+    ["Sound\\Interface\\PVPThroughQueue.wav"] = { kit = 8459, kitName = "PVP_THROUGH_QUEUE", alt = "Sound\\Interface\\PVPThroughQueue.ogg" },
+    ["Sound\\Interface\\AuctionWindowOpen.wav"] = { kit = 5274, kitName = "AUCTION_WINDOW_OPEN", alt = "Sound\\Interface\\AuctionWindowOpen.ogg" },
+    ["Sound\\Interface\\Error.wav"] = { kit = 17341, kitName = "LFG_DENIED", alt = "Sound\\Interface\\Error.ogg" },
 }
 
 function ns.PlaySoundFile(sound, force)
@@ -298,6 +348,12 @@ function ns.PlaySoundFile(sound, force)
         local ok = pcall(PlaySound, info.kit, "Master")
         if ok then return end
         pcall(PlaySound, info.kit)
+    end
+
+    if info and info.kitName and SOUNDKIT and SOUNDKIT[info.kitName] and PlaySound then
+        local ok = pcall(PlaySound, SOUNDKIT[info.kitName], "Master")
+        if ok then return end
+        pcall(PlaySound, SOUNDKIT[info.kitName])
     end
 
     if SOUNDKIT and type(sound) == "string" and SOUNDKIT[sound] and PlaySound then
@@ -530,6 +586,9 @@ function ns.TestBreak()
     ns.Print("Starting 5s test eye break overlay...")
     ns.restTimer = 5
     ns.timeRemaining = 0
+    if ns.AnnounceBreakStart then
+        ns.AnnounceBreakStart()
+    end
     ns.PlaySoundFile(ns.db.profile.soundBreakStart, true)
     ns.SetState(ns.RESTING)
     ns.Fire("BreakStart")
@@ -699,6 +758,30 @@ local function SlashHandler(msg)
         end
     elseif cmd == "log" then
         if ns.ToggleLog then ns.ToggleLog() end
+    elseif cmd == "center" then
+        if ns.db then
+            local p = ns.db.profile
+            p.widgetPoint = "CENTER"
+            p.widgetRelPoint = "CENTER"
+            p.widgetX = 0
+            p.widgetY = 0
+            p.showWidget = true
+            p.enabled = true
+            if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
+            local w = ns.Widget or _G["EagleEye20Widget"]
+            if w then
+                w:ClearAllPoints()
+                w:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+                w:SetScale(1)
+                w:SetFrameStrata("HIGH")
+                w:SetFrameLevel(100)
+                w:Show()
+                w:Raise()
+            end
+            ns.Fire("SettingsChanged")
+            ns.Fire("ConfigRefresh")
+            ns.Print("Floating countdown widget centered and shown.")
+        end
     elseif cmd == "widget" or cmd == "show" then
         if ns.db then
             local p = ns.db.profile

@@ -713,6 +713,9 @@ local function CreateMainPanel()
     end
 
     local bindingListener = CreateFrame("Frame", nil, page)
+    -- 3.3.5a only delivers OnKeyDown to frames with keyboard enabled (the
+    -- modern client does this implicitly for shown frames).
+    bindingListener:EnableKeyboard(true)
     bindingListener:Hide()
 
     keybindBtn = MakePanelButton(page, GetSafeKeyText(), col3_x, -646, COL_W, function()

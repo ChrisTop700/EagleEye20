@@ -84,7 +84,9 @@ local function CreateWindow()
     f = ns.NewFrame("Frame", "EagleEye20LogWindow", UIParent)
     f:SetWidth(PANEL_WIDTH)
     f:SetHeight(PANEL_HEIGHT)
-    f:SetFrameStrata("HIGH")
+    -- DIALOG sits above the Interface Options frame (HIGH strata), so the log
+    -- window opened from the options page is never hidden behind it.
+    f:SetFrameStrata("DIALOG")
     f:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -403,6 +405,7 @@ function ns.ToggleLog()
     else
         Refresh()
         f:Show()
+        f:Raise()
     end
 end
 

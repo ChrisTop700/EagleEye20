@@ -1,4 +1,4 @@
-## Interface: 30400
+## Interface: 30000
 ## Title: Eagle Eye |cff00cc9920/20/20|r
 ## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WotLK 3.3.5a.
 ## Author: Chris

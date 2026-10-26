@@ -7,7 +7,7 @@ local BAR_INSET = 2
 local f
 local countText, headerText, combatText, headerIcon
 local barTrack, barFill
-local pauseBtn, resetBtn, logBtn
+local pauseBtn, resetBtn, logBtn, lockBtn
 local safeBtn, snooze1Btn, snooze2Btn
 local tip
 
@@ -237,13 +237,25 @@ local function CreateWidget()
     end)
     f:SetScript("OnMouseUp", function(self, button)
         if button == "RightButton" then
-            if ns.OpenConfig then
-                ns.OpenConfig()
+            if IsShiftKeyDown() then
+                if ns.db then
+                    local p = ns.db.profile
+                    p.locked = not p.locked
+                    ns.Print(p.locked and "Widget locked." or "Widget unlocked.")
+                    ns.Fire("SettingsChanged")
+                    ns.Fire("ConfigRefresh")
+                end
+            else
+                if ns.OpenConfig then
+                    ns.OpenConfig()
+                end
             end
         end
     end)
     f:SetScript("OnEnter", function(self)
-        ShowTip(self, "Eagle Eye 20/20/20 | Drag: Move | Right-click: Options")
+        local p = ns.db and ns.db.profile
+        local lockStatus = (p and p.locked) and "Locked" or "Unlocked"
+        ShowTip(self, "Eagle Eye (" .. lockStatus .. ") | Drag: Move | Shift+RClick: Lock | RClick: Options")
     end)
     f:SetScript("OnLeave", HideTip)
 
@@ -258,17 +270,17 @@ local function CreateWidget()
     headerText:SetText("EAGLE EYE")
     headerText:SetTextColor(0.85, 0.85, 0.90, 0.95)
 
-    logBtn = MakeButton(f, "LOG", 24, 13, "Event log and statistics", function()
+    logBtn = MakeButton(f, "LOG", 22, 13, "Event log and statistics", function()
         if ns.ToggleLog then ns.ToggleLog() end
     end)
-    logBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -5, -4)
+    logBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -4, -4)
 
-    resetBtn = MakeButton(f, "RST", 24, 13, "Reset the work timer", function()
+    resetBtn = MakeButton(f, "RST", 22, 13, "Reset the work timer", function()
         ns.ResetTimer()
     end)
     resetBtn:SetPoint("TOPRIGHT", logBtn, "TOPLEFT", -2, 0)
 
-    pauseBtn = MakeButton(f, "II", 20, 13, "Pause or resume the timer", function()
+    pauseBtn = MakeButton(f, "II", 18, 13, "Pause or resume the timer", function()
         if ns.state == ns.PAUSED then
             ns.ResumeTimer()
         else
@@ -276,6 +288,16 @@ local function CreateWidget()
         end
     end)
     pauseBtn:SetPoint("TOPRIGHT", resetBtn, "TOPLEFT", -2, 0)
+
+    lockBtn = MakeButton(f, "U", 16, 13, "Toggle widget lock (or Shift+Right-Click widget)", function()
+        if not ns.db then return end
+        local p = ns.db.profile
+        p.locked = not p.locked
+        ns.Print(p.locked and "Widget locked." or "Widget unlocked.")
+        ns.Fire("SettingsChanged")
+        ns.Fire("ConfigRefresh")
+    end)
+    lockBtn:SetPoint("TOPRIGHT", pauseBtn, "TOPLEFT", -2, 0)
 
     countText = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     countText:SetPoint("CENTER", f, "CENTER", 0, -2)
@@ -392,9 +414,27 @@ local function Update()
         pauseBtn.label:SetText(state == ns.PAUSED and ">" or "II")
     end
 
+    if lockBtn and lockBtn.label then
+        local locked = p.locked
+        lockBtn.label:SetText(locked and "L" or "U")
+        if locked then
+            lockBtn.label:SetTextColor(0.95, 0.65, 0.1)
+        else
+            lockBtn.label:SetTextColor(0.0, 0.85, 0.65)
+        end
+    end
+
+    local safe, reason = true, nil
+    if ns.IsContextSafe then
+        safe, reason = ns.IsContextSafe()
+    else
+        safe = not combat
+        reason = combat and "IN COMBAT - WAITING" or nil
+    end
+
     local showSafe = (state == ns.PREPARE or state == ns.READY_WAITING or (taxiPrompt and state == ns.RUNNING))
     local showSnooze = (state == ns.PREPARE or state == ns.READY_WAITING)
-    local waitingCombat = (state == ns.READY_WAITING and combat)
+    local contextBlocked = (state == ns.READY_WAITING or state == ns.PREPARE) and not safe
 
     if state == ns.RESTING then
         showSafe = false
@@ -407,7 +447,7 @@ local function Update()
         else
             safeBtn.label:SetText("SAFE NOW")
         end
-        if showSafe and not waitingCombat then
+        if showSafe and safe then
             safeBtn:Show()
         else
             safeBtn:Hide()
@@ -415,7 +455,8 @@ local function Update()
     end
 
     if combatText then
-        if waitingCombat then
+        if contextBlocked and reason then
+            combatText:SetText(reason)
             combatText:Show()
         else
             combatText:Hide()
@@ -423,7 +464,7 @@ local function Update()
     end
 
     if snooze1Btn and snooze2Btn then
-        if showSnooze and not waitingCombat then
+        if showSnooze and not (state == ns.READY_WAITING and not safe) then
             snooze1Btn:Show()
             snooze2Btn:Show()
         else
@@ -432,7 +473,7 @@ local function Update()
         end
     end
 
-    local expanded = showSafe or showSnooze or waitingCombat
+    local expanded = showSafe or showSnooze or contextBlocked
     f:SetHeight(expanded and EXPANDED_HEIGHT or HEIGHT)
 
     if headerText then
@@ -463,6 +504,11 @@ ns.RegisterInit(function()
     end)
     ns.On("CombatStart", Update)
     ns.On("CombatEnd", Update)
+    ns.On("DeathStart", Update)
+    ns.On("DeathEnd", Update)
+    ns.On("VehicleChanged", Update)
+    ns.On("CinematicStart", Update)
+    ns.On("CinematicStop", Update)
     ns.On("TaxiPrompt", function()
         taxiPrompt = true
         Update()

@@ -16,9 +16,16 @@ Every cycle the addon counts down your screen time, then asks you to confirm you
 
 - **Timer presets** - `20/20/20` (default), `30/30/20`, `45/45/20`, `60/60/20`, or a fully **custom** scheme you define yourself (work minutes / look-away feet / rest seconds).
 - **5-state engine** - running, prepare, ready gate, resting blackout, paused.
-- **Safety gate** - the break only starts when you confirm; in combat the widget shows `IN COMBAT - WAITING` and holds.
-- **Fullscreen blackout** with a large countdown, `LOOK X FEET AWAY` instruction, and emergency exit (double-click or `ESC`).
-- **Combat interrupt** - entering combat during a break instantly restores the screen and returns to the safety gate.
+- **Safety gates (Combat, Death, Vehicle, Cinematic)** - the break only starts when you confirm and are safe:
+  - In combat: displays `IN COMBAT - WAITING` and holds.
+  - Dead or ghost: displays `DEAD / GHOST - WAITING` and suppresses prompts while dead or corpse-running.
+  - In vehicle: displays `IN VEHICLE - WAITING` during vehicle combat and quests.
+  - In cutscene: displays `CINEMATIC - WAITING` during cinematics.
+- **Visual break modes** - choose between classic **Solid Blackout** (default 95% opacity) or gentle **Soft Dimming Vignette** (70% dimming with smooth edge shading), both with customizable opacity sliders.
+- **Fullscreen break overlay** with a large countdown, `LOOK X FEET AWAY` instruction, and emergency exit (double-click or `ESC`).
+- **Combat & death interrupt** - entering combat or dying during a break instantly restores the screen and returns to the safety gate.
+- **Repeating ready alert sound** - optional repeat chime interval (e.g., every 30s, 60s, or 2m) while holding in `READY_WAITING` out of combat so pending breaks aren't missed.
+- **Quick lock & widget polish** - mini `[U]`/`[L]` button directly on the widget to lock/unlock position, Shift+Right-Click shortcut, and `/ee20 lock`.
 - **Smart context** - pauses while AFK (auto-resets after 60s), offers a break while on a flight path with under 5 minutes left, and can auto-start inside an inn or city.
 - **Event log and stats** - session and lifetime break counts, snoozes, combat interruptions, compliance rate, and a 100 entry timestamped history.
 - **Party announcements** - optional start/end messages to `PARTY` (or `RAID` with the extra opt-in), with `{distance}` and `{rest}` tokens.
@@ -45,7 +52,11 @@ All of `/ee20`, `/eagleeye20` and `/202020` work.
 | `/ee20 snooze [seconds]` | Push the break gate back (default 60s) |
 | `/ee20 preset [20\|30\|45\|60\|custom]` | Switch the timer scheme |
 | `/ee20 log` | Toggle the event log window |
+| `/ee20 lock` | Lock or unlock the floating widget |
+| `/ee20 widget` or `/ee20 show` | Show or hide the floating countdown widget |
+| `/ee20 center` | Center and show the floating widget |
 | `/ee20 minimap` | Show or hide the minimap button |
+| `/ee20 panic` | Force-clear the break overlay if needed |
 | `/ee20 test` | Run a 5 second test cycle through warning, gate and blackout |
 | `/ee20 help` | List commands |
 
@@ -73,16 +84,11 @@ Both the blackout instruction (`LOOK X FEET AWAY`) and the default party message
 - No addon dependencies, no LibStub, no Ace3.
 - SavedVariables: `EagleEye20DB`.
 
-## Planned Future Enhancements (TODO)
+## Planned Future Enhancements (Roadmap)
 
-- **Death / Ghost State Safety Gate:** Check `UnitIsDeadOrGhost("player")` in the safety gate to display `DEAD / GHOST - WAITING` and suppress break prompts or auto-starts while dead or corpse-running.
-- **Repeating Ready Alert Sound:** Add an optional repeat interval (e.g., every 30s or 60s) for the ready alert sound while holding in `READY_WAITING` out of combat.
-- **SoundKit Resilient Audio Fallbacks:** Implement direct `PlaySound(SOUNDKIT_ID, "Master")` support with graceful fallbacks to `PlaySoundFile(path, "Master")`.
 - **Tradeskill & Batch Crafting Detection:** Hook `UNIT_SPELLCAST_START` / `UNIT_SPELLCAST_STOP` to offer a `TAKE BREAK NOW` prompt during lengthy tradeskill crafting queues.
-- **Quick Lock Toggle:** Add right-click or a small padlock toggle icon to the mini-widget to quickly lock/unlock frame position without opening the settings menu.
 - **Post-Break Micro-Exercise & Posture Routine (Optional):** Optional follow-up prompt/screen displayed *after* completing the 20-second eye rest (keeping the eye break dedicated to distance recovery), guiding through light neck/shoulder stretches and blinking resets.
 - **Hourly Health & Hydration Reminders:** Standalone or combined hourly prompt (every 60 minutes instead of every 20 minutes) encouraging drinking water, standing up, and posture checks.
-- **Soft Dimming / Vignette Visual Mode:** An alternative visual break mode in settings that dims the screen smoothly (e.g., 70% opacity with vignette) instead of a solid blackout overlay.
 - **Gamification, Streaks & Configurable Compliance Target:**
   - Configurable compliance threshold (defaults to 90%).
   - Daily & weekly compliance streak counter displayed on the minimap tooltip and log window.

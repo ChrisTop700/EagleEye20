@@ -101,6 +101,15 @@ ns.SafeRegister(frame, "PLAYER_ENTERING_WORLD")
 ns.SafeRegister(frame, "PLAYER_FLAGS_CHANGED")
 ns.SafeRegister(frame, "PLAYER_LOGIN")
 
+-- Tier 1 Safety Gates: Death / Ghost, Vehicle, Cinematic
+ns.SafeRegister(frame, "PLAYER_DEAD")
+ns.SafeRegister(frame, "PLAYER_ALIVE")
+ns.SafeRegister(frame, "PLAYER_UNGHOST")
+ns.SafeRegister(frame, "UNIT_ENTERED_VEHICLE")
+ns.SafeRegister(frame, "UNIT_EXITED_VEHICLE")
+ns.SafeRegister(frame, "CINEMATIC_START")
+ns.SafeRegister(frame, "CINEMATIC_STOP")
+
 frame:SetScript("OnEvent", function(_, event, arg1)
     if event == "PLAYER_REGEN_DISABLED" then
         ns.Fire("CombatStart")
@@ -112,6 +121,29 @@ frame:SetScript("OnEvent", function(_, event, arg1)
         if ns.state == ns.READY_WAITING then
             ns.Fire("StateChanged", ns.state, ns.state)
         end
+    elseif event == "PLAYER_DEAD" then
+        ns.Fire("DeathStart")
+        if ns.state == ns.RESTING then
+            ns.InterruptRestByDeath()
+        end
+        ns.Fire("StateChanged", ns.state, ns.state)
+    elseif event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
+        ns.Fire("DeathEnd")
+        ns.Fire("StateChanged", ns.state, ns.state)
+    elseif event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE" then
+        if arg1 == "player" or arg1 == nil then
+            ns.Fire("VehicleChanged")
+            ns.Fire("StateChanged", ns.state, ns.state)
+        end
+    elseif event == "CINEMATIC_START" then
+        if ns.state == ns.RESTING then
+            ns.InterruptRestByCinematic()
+        end
+        ns.Fire("CinematicStart")
+        ns.Fire("StateChanged", ns.state, ns.state)
+    elseif event == "CINEMATIC_STOP" then
+        ns.Fire("CinematicStop")
+        ns.Fire("StateChanged", ns.state, ns.state)
     elseif event == "PLAYER_FLAGS_CHANGED" then
         if arg1 == "player" or arg1 == nil then
             SyncAFK()

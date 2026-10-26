@@ -30,6 +30,18 @@ local MINIMAP_SHAPE_ITEMS = {
     { text = "Square minimap", value = "SQUARE" },
 }
 
+local OVERLAY_STYLE_ITEMS = {
+    { text = "Solid Blackout", value = "SOLID" },
+    { text = "Soft Dimming Vignette", value = "VIGNETTE" },
+}
+
+local READY_REPEAT_ITEMS = {
+    { text = "Off (Play once)", value = 0 },
+    { text = "Every 30 seconds", value = 30 },
+    { text = "Every 60 seconds", value = 60 },
+    { text = "Every 2 minutes", value = 120 },
+}
+
 local SOUND_ITEMS = {
     { text = "Raid Warning", value = "Sound\\Interface\\RaidWarning.wav" },
     { text = "Ready Check", value = "Sound\\Interface\\ReadyCheck.wav" },
@@ -419,7 +431,7 @@ end
 local function CreateMainPanel()
     local panel, refs = CreatePage("EagleEye20MainOptions", "Eagle Eye 20/20/20")
 
-    local page = ScrollablePanel(panel, 720)
+    local page = ScrollablePanel(panel, 820)
 
     -- Header: 48x48 Addon Icon with Title and Subtitle (Logo kept off options)
     local icon = page:CreateTexture(nil, "ARTWORK")
@@ -572,6 +584,11 @@ local function CreateMainPanel()
             ns.Fire("SettingsChanged")
         end)
 
+    MakeDropdown(page, refs, "OverlayStyle", "Break visual style", col3_x, -438, DROP_W,
+        OVERLAY_STYLE_ITEMS,
+        function() return Profile().overlayStyle or "SOLID" end,
+        SetProfileValue("overlayStyle"))
+
     MakeDropdown(page, refs, "FontFace", "Countdown font", col1_x, -496, DROP_W,
         FONT_ITEMS,
         function() return Profile().fontFace end,
@@ -601,16 +618,26 @@ local function CreateMainPanel()
             ns.Fire("SettingsChanged")
         end)
 
+    MakeSlider(page, refs, "BlackoutAlpha", "Solid blackout opacity", col1_x, -554, 0.50, 1.00, 0.05,
+        function(v) return string.format("Solid opacity: %d%%", math.floor(v * 100 + 0.5)) end,
+        function() return Profile().blackoutAlpha or 0.95 end,
+        SetProfileValue("blackoutAlpha"), COL_W)
+
+    MakeSlider(page, refs, "SoftDimAlpha", "Soft vignette opacity", col2_x, -554, 0.40, 0.95, 0.05,
+        function(v) return string.format("Vignette opacity: %d%%", math.floor(v * 100 + 0.5)) end,
+        function() return Profile().softDimAlpha or 0.70 end,
+        SetProfileValue("softDimAlpha"), COL_W)
+
     -- =========================================================================
     -- GROUP 4: ACTIONS & KEYBINDINGS
     -- =========================================================================
-    MakeSectionHeader("ACTIONS & KEYBINDINGS", -562)
+    MakeSectionHeader("ACTIONS & KEYBINDINGS", -620)
 
-    MakePanelButton(page, "Test Break", col1_x, -588, COL_W, function()
+    MakePanelButton(page, "Test Break", col1_x, -646, COL_W, function()
         ns.TestBreak()
     end)
 
-    MakePanelButton(page, "Show / Center Widget", col2_x, -588, COL_W, function()
+    MakePanelButton(page, "Show / Center Widget", col2_x, -646, COL_W, function()
         if not ns.db then return end
         local p = ns.db.profile
         p.widgetPoint = "CENTER"
@@ -661,7 +688,7 @@ local function CreateMainPanel()
     local bindingListener = CreateFrame("Frame", nil, page)
     bindingListener:Hide()
 
-    keybindBtn = MakePanelButton(page, GetSafeKeyText(), col3_x, -588, COL_W, function()
+    keybindBtn = MakePanelButton(page, GetSafeKeyText(), col3_x, -646, COL_W, function()
         if bindingListener:IsShown() then
             bindingListener:Hide()
             keybindBtn:SetText(GetSafeKeyText())
@@ -710,11 +737,11 @@ local function CreateMainPanel()
         keybindBtn:SetText(GetSafeKeyText())
     end)
 
-    MakePanelButton(page, "Open Event Log", col1_x, -620, COL_W, function()
+    MakePanelButton(page, "Open Event Log", col1_x, -678, COL_W, function()
         if ns.ToggleLog then ns.ToggleLog() end
     end)
 
-    MakePanelButton(page, "Reset Minimap", col2_x, -620, COL_W, function()
+    MakePanelButton(page, "Reset Minimap", col2_x, -678, COL_W, function()
         if not ns.db then return end
         ns.db.profile.minimapAngle = 250
         if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
@@ -730,7 +757,7 @@ local function CreateMainPanel()
             s.completed or 0, s.snoozed or 0, s.combatInterrupted or 0, s.manualAborted or 0))
     end
 
-    MakePanelButton(page, "Reset Stats", col3_x, -620, COL_W, function()
+    MakePanelButton(page, "Reset Stats", col3_x, -678, COL_W, function()
         if not ns.db then return end
         ns.db.stats = { completed = 0, snoozed = 0, combatInterrupted = 0, manualAborted = 0 }
         ns.session = { completed = 0, snoozed = 0, combatInterrupted = 0, manualAborted = 0 }
@@ -743,8 +770,8 @@ local function CreateMainPanel()
     -- =========================================================================
     -- GROUP 5: LIFETIME STATISTICS
     -- =========================================================================
-    MakeSectionHeader("LIFETIME STATISTICS", -664)
-    statsLabel:SetPoint("TOPLEFT", page, "TOPLEFT", col1_x, -690)
+    MakeSectionHeader("LIFETIME STATISTICS", -722)
+    statsLabel:SetPoint("TOPLEFT", page, "TOPLEFT", col1_x, -748)
     statsLabel:SetTextColor(0.0, 0.85, 0.65)
     table.insert(refs, UpdateStats)
 
@@ -756,7 +783,7 @@ end
 local function CreateAudioPanel(parentCategory)
     local panel, refs = CreatePage("EagleEye20AudioOptions", "Audio & Announcements")
 
-    local page = ScrollablePanel(panel, 460)
+    local page = ScrollablePanel(panel, 500)
 
     local title = page:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", page, "TOPLEFT", 16, -10)
@@ -801,6 +828,10 @@ local function CreateAudioPanel(parentCategory)
             end
         end)
     end
+
+    MakeDropdown(page, refs, "SoundReadyRepeat", "Repeat ready chime while waiting", 16, -326, 190, READY_REPEAT_ITEMS,
+        function() return Profile().soundReadyRepeat or 0 end,
+        SetProfileValue("soundReadyRepeat"))
 
     -- Column 2: Announcements (x = 300)
     MakeCheckbox(page, refs, "AnnounceParty", "Announce breaks to party", 300, -56,

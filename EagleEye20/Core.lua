@@ -32,7 +32,7 @@ end
 _G["EagleEye20_PauseResume_Binding"] = EagleEye20_PauseResume_Binding
 
 ns.name = AddonName
-ns.version = "0.10.0-beta"
+ns.version = "0.11.0-alpha"
 ns.MEDIA = "Interface\\AddOns\\EagleEye20\\Textures\\"
 
 -- The client is a modern (Forever, interface 16001) build. Frames only get
@@ -169,6 +169,8 @@ local defaults = {
         distanceFeet = 20,
         abortAction = "PAUSE",
         blackoutAlpha = 0.95,
+        overlayStyle = "SOLID",
+        softDimAlpha = 0.70,
         autoResetOnAFK = true,
         promptOnTaxi = true,
         autoStartInInn = false,
@@ -189,6 +191,7 @@ local defaults = {
         soundEnabled = true,
         soundWarning = "Sound\\Interface\\RaidWarning.wav",
         soundReady = "Sound\\Interface\\ReadyCheck.wav",
+        soundReadyRepeat = 0,
         soundBreakStart = "Sound\\Interface\\MapPing.wav",
         soundBreakEnd = "Sound\\Interface\\LevelUp.wav",
         soundCombatCancel = "Sound\\Interface\\Error.wav",
@@ -410,10 +413,39 @@ function ns.InCombat()
     return UnitAffectingCombat("player") and true or false
 end
 
+function ns.IsDeadOrGhost()
+    if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then return true end
+    if UnitIsDead and UnitIsDead("player") then return true end
+    if UnitIsGhost and UnitIsGhost("player") then return true end
+    return false
+end
+
+function ns.InVehicle()
+    if UnitInVehicle and UnitInVehicle("player") then return true end
+    if UnitHasVehicleUI and UnitHasVehicleUI("player") then return true end
+    return false
+end
+
+function ns.InCinematic()
+    if InCinematic and InCinematic() then return true end
+    if CinematicFrame and CinematicFrame:IsShown() then return true end
+    if MovieFrame and MovieFrame:IsShown() then return true end
+    return false
+end
+
+function ns.IsContextSafe()
+    if ns.InCombat() then return false, "IN COMBAT - WAITING" end
+    if ns.IsDeadOrGhost() then return false, "DEAD / GHOST - WAITING" end
+    if ns.InVehicle() then return false, "IN VEHICLE - WAITING" end
+    if ns.InCinematic() then return false, "CINEMATIC - WAITING" end
+    return true, nil
+end
+
 function ns.SetState(newState)
     local old = ns.state
     if old == newState then return end
     ns.state = newState
+    ns.readyRepeatTimer = 0
     ns.Fire("StateChanged", newState, old)
 end
 
@@ -506,10 +538,13 @@ end
 function ns.ConfirmSafe(force)
     if not ns.db then return false end
     if ns.state == ns.RESTING then return false end
-    if ns.InCombat() then
-        ns.Log("SAFE_REFUSED", "Player still in combat")
-        ns.Print("You are in combat - wait until you are safe.")
-        return false
+    local safe, reason = ns.IsContextSafe()
+    if not safe then
+        if not force or ns.InCombat() or ns.IsDeadOrGhost() then
+            ns.Log("SAFE_REFUSED", reason)
+            ns.Print(reason .. " - wait until you are safe.")
+            return false
+        end
     end
     if not force and ns.state ~= ns.PREPARE and ns.state ~= ns.READY_WAITING then
         ns.Print("No break is pending right now.")
@@ -549,6 +584,26 @@ function ns.InterruptRestByCombat()
     ns.PlaySoundFile(ns.db.profile.soundCombatCancel)
     ns.BumpStat("combatInterrupted")
     ns.Log("INTERRUPTED_COMBAT", "Combat began during rest")
+    ns.timeRemaining = 0
+    ns.restTimer = 0
+    ns.SetState(ns.READY_WAITING)
+    ns.Fire("BreakInterrupted")
+end
+
+function ns.InterruptRestByDeath()
+    if not ns.db or ns.state ~= ns.RESTING then return end
+    ns.PlaySoundFile(ns.db.profile.soundCombatCancel)
+    ns.BumpStat("combatInterrupted")
+    ns.Log("INTERRUPTED_DEATH", "Player died during rest")
+    ns.timeRemaining = 0
+    ns.restTimer = 0
+    ns.SetState(ns.READY_WAITING)
+    ns.Fire("BreakInterrupted")
+end
+
+function ns.InterruptRestByCinematic()
+    if not ns.db or ns.state ~= ns.RESTING then return end
+    ns.Log("INTERRUPTED_CINEMATIC", "Cinematic began during rest")
     ns.timeRemaining = 0
     ns.restTimer = 0
     ns.SetState(ns.READY_WAITING)
@@ -627,9 +682,16 @@ function ns.Tick(dt)
             ns.CompleteRest()
         end
     elseif ns.state == ns.READY_WAITING then
-        if p.autoStartInInn and IsResting() and not ns.InCombat() then
+        local safe = select(1, ns.IsContextSafe())
+        if p.autoStartInInn and IsResting() and safe then
             ns.Log("AUTO_STARTED", "Resting area auto-start")
             ns.ConfirmSafe()
+        elseif p.soundReadyRepeat and p.soundReadyRepeat > 0 and safe then
+            ns.readyRepeatTimer = (ns.readyRepeatTimer or 0) + dt
+            if ns.readyRepeatTimer >= p.soundReadyRepeat then
+                ns.readyRepeatTimer = 0
+                ns.PlaySoundFile(p.soundReady)
+            end
         end
     end
 
@@ -696,6 +758,7 @@ local function PrintHelp()
     ns.Print("  /ee20 snooze [seconds]")
     ns.Print("  /ee20 preset [20|30|45|60|custom]")
     ns.Print("  /ee20 log")
+    ns.Print("  /ee20 lock  - lock or unlock the floating widget")
     ns.Print("  /ee20 widget | show  - show or hide the floating countdown widget")
     ns.Print("  /ee20 minimap  - show or hide the minimap button")
     ns.Print("  /ee20 panic  - force-clear the break overlay if it gets stuck")
@@ -758,6 +821,14 @@ local function SlashHandler(msg)
         end
     elseif cmd == "log" then
         if ns.ToggleLog then ns.ToggleLog() end
+    elseif cmd == "lock" then
+        if ns.db then
+            local p = ns.db.profile
+            p.locked = not p.locked
+            ns.Fire("SettingsChanged")
+            ns.Fire("ConfigRefresh")
+            ns.Print("Floating widget " .. (p.locked and "locked." or "unlocked."))
+        end
     elseif cmd == "center" then
         if ns.db then
             local p = ns.db.profile

@@ -14,6 +14,30 @@ local function SetSolidColor(tex, r, g, b, a)
     end
 end
 
+local function SetGradientSafe(tex, orientation, r1, g1, b1, a1, r2, g2, b2, a2)
+    if not tex then return end
+    if tex.SetColorTexture then
+        tex:SetColorTexture(1, 1, 1, 1)
+    else
+        tex:SetTexture("Interface\\Buttons\\WHITE8X8")
+    end
+    if tex.SetGradient then
+        if CreateColor then
+            local c1 = CreateColor(r1, g1, b1, a1)
+            local c2 = CreateColor(r2, g2, b2, a2)
+            local ok = pcall(tex.SetGradient, tex, orientation, c1, c2)
+            if ok then return end
+        end
+        local ok = pcall(tex.SetGradient, tex, orientation, r1, g1, b1, a1, r2, g2, b2, a2)
+        if ok then return end
+    end
+    if tex.SetGradientAlpha then
+        local ok = pcall(tex.SetGradientAlpha, tex, orientation, r1, g1, b1, a1, r2, g2, b2, a2)
+        if ok then return end
+    end
+    SetSolidColor(tex, r2, g2, b2, (a1 + a2) / 2)
+end
+
 local function CancelBreakFromOverlay(reason)
     if ns.state == ns.RESTING then
         ns.AbortRest(reason)
@@ -40,6 +64,42 @@ local function CreateBlackout()
     bg:SetAllPoints(f)
     SetSolidColor(bg, 0, 0, 0, 0.95)
     f.bg = bg
+
+    -- Soft vignette border textures
+    local vignettes = {}
+    local vigTop = f:CreateTexture(nil, "BORDER")
+    vigTop:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+    vigTop:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
+    vigTop:SetHeight(180)
+    SetGradientSafe(vigTop, "VERTICAL", 0, 0, 0, 0, 0, 0, 0, 0.85)
+    vigTop:Hide()
+    table.insert(vignettes, vigTop)
+
+    local vigBottom = f:CreateTexture(nil, "BORDER")
+    vigBottom:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
+    vigBottom:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
+    vigBottom:SetHeight(180)
+    SetGradientSafe(vigBottom, "VERTICAL", 0, 0, 0, 0.85, 0, 0, 0, 0)
+    vigBottom:Hide()
+    table.insert(vignettes, vigBottom)
+
+    local vigLeft = f:CreateTexture(nil, "BORDER")
+    vigLeft:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+    vigLeft:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
+    vigLeft:SetWidth(240)
+    SetGradientSafe(vigLeft, "HORIZONTAL", 0, 0, 0, 0.85, 0, 0, 0, 0)
+    vigLeft:Hide()
+    table.insert(vignettes, vigLeft)
+
+    local vigRight = f:CreateTexture(nil, "BORDER")
+    vigRight:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
+    vigRight:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
+    vigRight:SetWidth(240)
+    SetGradientSafe(vigRight, "HORIZONTAL", 0, 0, 0, 0, 0, 0, 0, 0.85)
+    vigRight:Hide()
+    table.insert(vignettes, vigRight)
+    f.vignettes = vignettes
+
     f:Hide()
 
     logo = f:CreateTexture(nil, "ARTWORK")
@@ -153,12 +213,22 @@ ns.DismissBlackout = DismissNow
 function ns.ShowBlackout()
     if not f or not ns.db then return end
     local p = ns.db.profile
-    local alpha = p.blackoutAlpha or 0.95
+    local isVignette = (p.overlayStyle == "VIGNETTE")
+    local alpha = isVignette and (p.softDimAlpha or 0.70) or (p.blackoutAlpha or 0.95)
     if f.SetBackdropColor then
         pcall(f.SetBackdropColor, f, 0, 0, 0, alpha)
     end
     if f.bg then
         SetSolidColor(f.bg, 0, 0, 0, alpha)
+    end
+    if f.vignettes then
+        for _, vig in ipairs(f.vignettes) do
+            if isVignette then
+                vig:Show()
+            else
+                vig:Hide()
+            end
+        end
     end
     subText:SetText("LOOK " .. tostring(p.distanceFeet or 20) .. " FEET AWAY")
     countText:SetText(tostring(math.max(0, math.ceil(ns.restTimer))))

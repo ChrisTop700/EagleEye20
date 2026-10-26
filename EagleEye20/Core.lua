@@ -8,7 +8,7 @@ BINDING_NAME_EAGLEEYE20_SNOOZE = "Snooze Pending Break"
 BINDING_NAME_EAGLEEYE20_PAUSERESUME = "Pause / Resume Timer"
 
 ns.name = AddonName
-ns.version = "0.10.0"
+ns.version = "0.10.0-alpha"
 ns.MEDIA = "Interface\\AddOns\\EagleEye20\\Textures\\"
 
 -- The client is a modern (Forever, interface 16001) build. Frames only get

@@ -2,7 +2,7 @@
 ## Title: Eagle Eye |cff00cc9920/20/20|r
 ## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WoW Forever.
 ## Author: Chris
-## Version: 0.10.0
+## Version: 0.10.0-alpha
 ## Category: Combat
 ## SavedVariables: EagleEye20DB
 ## IconTexture: Interface\AddOns\EagleEye20\Textures\Icon

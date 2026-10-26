@@ -491,6 +491,16 @@ local function CreateMainPanel()
         SetProfileValue("autoStartInInn"),
         "Starts the eye break blackout automatically when due inside an inn or rested city.")
 
+    MakeCheckbox(page, refs, "HoldDeath", "Hold break while dead", col2_x, -134,
+        function() return Profile().holdOnDeath ~= false end,
+        SetProfileValue("holdOnDeath"),
+        "Displays DEAD / GHOST - WAITING and suppresses break prompts while dead or corpse-running.")
+
+    MakeCheckbox(page, refs, "HoldVehicle", "Hold break in vehicle", col3_x, -134,
+        function() return Profile().holdOnVehicle ~= false end,
+        SetProfileValue("holdOnVehicle"),
+        "Displays IN VEHICLE - WAITING and holds break prompts while in a vehicle.")
+
     MakeDropdown(page, refs, "Abort", "When break cancelled", col1_x, -168, DROP_W,
         ABORT_ITEMS,
         function() return Profile().abortAction end,
@@ -571,20 +581,46 @@ local function CreateMainPanel()
             if ns.ApplyWidgetSettings then ns.ApplyWidgetSettings() end
         end), COL_W)
 
-    MakeDropdown(page, refs, "MinimapShape", "Minimap shape", col2_x, -438, DROP_W,
-        MINIMAP_SHAPE_ITEMS,
-        function() return Profile().minimapShape or "AUTO" end,
-        function(v)
-            if not ns.db then return end
-            ns.db.profile.minimapShape = v
-            if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
-            ns.Fire("SettingsChanged")
-        end)
+    local function GetBreakOpacity()
+        local p = Profile()
+        if p.overlayStyle == "VIGNETTE" then
+            return p.softDimAlpha or 0.70
+        else
+            return p.blackoutAlpha or 0.95
+        end
+    end
 
-    MakeDropdown(page, refs, "OverlayStyle", "Break visual style", col3_x, -438, DROP_W,
+    local function SetBreakOpacity(v)
+        local p = Profile()
+        if p.overlayStyle == "VIGNETTE" then
+            p.softDimAlpha = v
+        else
+            p.blackoutAlpha = v
+        end
+        ns.Fire("SettingsChanged")
+    end
+
+    local function FormatBreakOpacity(v)
+        local p = Profile()
+        local label = (p.overlayStyle == "VIGNETTE") and "Vignette opacity" or "Blackout opacity"
+        return string.format("%s: %d%%", label, math.floor(v * 100 + 0.5))
+    end
+
+    MakeDropdown(page, refs, "OverlayStyle", "Break visual style", col2_x, -438, DROP_W,
         OVERLAY_STYLE_ITEMS,
         function() return Profile().overlayStyle or "SOLID" end,
-        SetProfileValue("overlayStyle"))
+        function(v)
+            if not ns.db then return end
+            ns.db.profile.overlayStyle = v
+            ns.Fire("SettingsChanged")
+            RefreshPanel(panel)
+        end)
+
+    MakeSlider(page, refs, "BreakOpacity", "Break screen opacity", col3_x, -438, 0.40, 1.00, 0.05,
+        FormatBreakOpacity,
+        GetBreakOpacity,
+        SetBreakOpacity,
+        COL_W)
 
     MakeDropdown(page, refs, "FontFace", "Countdown font", col1_x, -496, DROP_W,
         FONT_ITEMS,
@@ -615,15 +651,15 @@ local function CreateMainPanel()
             ns.Fire("SettingsChanged")
         end)
 
-    MakeSlider(page, refs, "BlackoutAlpha", "Solid blackout opacity", col1_x, -554, 0.50, 1.00, 0.05,
-        function(v) return string.format("Solid opacity: %d%%", math.floor(v * 100 + 0.5)) end,
-        function() return Profile().blackoutAlpha or 0.95 end,
-        SetProfileValue("blackoutAlpha"), COL_W)
-
-    MakeSlider(page, refs, "SoftDimAlpha", "Soft vignette opacity", col2_x, -554, 0.40, 0.95, 0.05,
-        function(v) return string.format("Vignette opacity: %d%%", math.floor(v * 100 + 0.5)) end,
-        function() return Profile().softDimAlpha or 0.70 end,
-        SetProfileValue("softDimAlpha"), COL_W)
+    MakeDropdown(page, refs, "MinimapShape", "Minimap shape", col1_x, -554, DROP_W,
+        MINIMAP_SHAPE_ITEMS,
+        function() return Profile().minimapShape or "AUTO" end,
+        function(v)
+            if not ns.db then return end
+            ns.db.profile.minimapShape = v
+            if ns.ApplyMinimapSettings then ns.ApplyMinimapSettings() end
+            ns.Fire("SettingsChanged")
+        end)
 
     -- =========================================================================
     -- GROUP 4: ACTIONS & KEYBINDINGS
@@ -836,7 +872,7 @@ local function CreateAudioPanel(parentCategory)
     end
 
     MakeDropdown(page, refs, "SoundReadyRepeat", "Repeat ready chime while waiting", 16, -326, 190, READY_REPEAT_ITEMS,
-        function() return Profile().soundReadyRepeat or 0 end,
+        function() return (Profile().soundReadyRepeat ~= nil) and Profile().soundReadyRepeat or 30 end,
         SetProfileValue("soundReadyRepeat"))
 
     -- Column 2: Announcements (x = 300)

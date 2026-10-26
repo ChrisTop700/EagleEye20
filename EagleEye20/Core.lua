@@ -171,6 +171,8 @@ local defaults = {
         blackoutAlpha = 0.95,
         overlayStyle = "SOLID",
         softDimAlpha = 0.70,
+        holdOnDeath = true,
+        holdOnVehicle = true,
         autoResetOnAFK = true,
         promptOnTaxi = true,
         autoStartInInn = false,
@@ -191,7 +193,7 @@ local defaults = {
         soundEnabled = true,
         soundWarning = "Sound\\Interface\\RaidWarning.wav",
         soundReady = "Sound\\Interface\\ReadyCheck.wav",
-        soundReadyRepeat = 0,
+        soundReadyRepeat = 30,
         soundBreakStart = "Sound\\Interface\\MapPing.wav",
         soundBreakEnd = "Sound\\Interface\\LevelUp.wav",
         soundCombatCancel = "Sound\\Interface\\Error.wav",
@@ -435,9 +437,16 @@ end
 
 function ns.IsContextSafe()
     if ns.InCombat() then return false, "IN COMBAT - WAITING" end
-    if ns.IsDeadOrGhost() then return false, "DEAD / GHOST - WAITING" end
-    if ns.InVehicle() then return false, "IN VEHICLE - WAITING" end
-    if ns.InCinematic() then return false, "CINEMATIC - WAITING" end
+    local p = ns.db and ns.db.profile
+    if (not p or p.holdOnDeath ~= false) and ns.IsDeadOrGhost() then
+        return false, "DEAD / GHOST - WAITING"
+    end
+    if (not p or p.holdOnVehicle ~= false) and ns.InVehicle() then
+        return false, "IN VEHICLE - WAITING"
+    end
+    if ns.InCinematic() then
+        return false, "CINEMATIC - WAITING"
+    end
     return true, nil
 end
 
@@ -538,9 +547,12 @@ end
 function ns.ConfirmSafe(force)
     if not ns.db then return false end
     if ns.state == ns.RESTING then return false end
+    local p = ns.db.profile
     local safe, reason = ns.IsContextSafe()
     if not safe then
-        if not force or ns.InCombat() or ns.IsDeadOrGhost() then
+        local blockedByCombat = ns.InCombat()
+        local blockedByDeath = (not p or p.holdOnDeath ~= false) and ns.IsDeadOrGhost()
+        if not force or blockedByCombat or blockedByDeath then
             ns.Log("SAFE_REFUSED", reason)
             ns.Print(reason .. " - wait until you are safe.")
             return false

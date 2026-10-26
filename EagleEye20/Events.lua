@@ -122,8 +122,9 @@ frame:SetScript("OnEvent", function(_, event, arg1)
             ns.Fire("StateChanged", ns.state, ns.state)
         end
     elseif event == "PLAYER_DEAD" then
+        local p = ns.db and ns.db.profile
         ns.Fire("DeathStart")
-        if ns.state == ns.RESTING then
+        if ns.state == ns.RESTING and (not p or p.holdOnDeath ~= false) then
             ns.InterruptRestByDeath()
         end
         ns.Fire("StateChanged", ns.state, ns.state)

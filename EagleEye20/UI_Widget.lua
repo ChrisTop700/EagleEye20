@@ -119,6 +119,26 @@ local function HideTip()
     if tip then tip:Hide() end
 end
 
+local function GetWidgetTipText()
+    local p = ns.db and ns.db.profile
+    local lockStatus = (p and p.locked) and "Locked" or "Unlocked"
+    return "Eagle Eye (" .. lockStatus .. ") | Drag: Move | Shift+RClick: Lock | RClick: Options"
+end
+
+local function GetLockBtnTipText()
+    local p = ns.db and ns.db.profile
+    return (p and p.locked) and "Position Locked (Click to unlock)" or "Position Unlocked (Click to lock)"
+end
+
+local function RefreshWidgetTip()
+    if not tip or not tip:IsShown() then return end
+    if lockBtn and lockBtn:IsMouseOver() then
+        ShowTip(lockBtn, GetLockBtnTipText())
+    elseif f and f:IsMouseOver() then
+        ShowTip(f, GetWidgetTipText())
+    end
+end
+
 local function MakeButton(parent, label, width, height, tooltipText, onClick)
     local b = ns.NewFrame("Button", nil, parent)
     b:SetWidth(width)
@@ -244,6 +264,7 @@ local function CreateWidget()
                     ns.Print(p.locked and "Widget locked." or "Widget unlocked.")
                     ns.Fire("SettingsChanged")
                     ns.Fire("ConfigRefresh")
+                    RefreshWidgetTip()
                 end
             else
                 if ns.OpenConfig then
@@ -253,9 +274,7 @@ local function CreateWidget()
         end
     end)
     f:SetScript("OnEnter", function(self)
-        local p = ns.db and ns.db.profile
-        local lockStatus = (p and p.locked) and "Locked" or "Unlocked"
-        ShowTip(self, "Eagle Eye (" .. lockStatus .. ") | Drag: Move | Shift+RClick: Lock | RClick: Options")
+        ShowTip(self, GetWidgetTipText())
     end)
     f:SetScript("OnLeave", HideTip)
 
@@ -289,13 +308,17 @@ local function CreateWidget()
     end)
     pauseBtn:SetPoint("TOPRIGHT", resetBtn, "TOPLEFT", -2, 0)
 
-    lockBtn = MakeButton(f, "U", 16, 13, "Toggle widget lock (or Shift+Right-Click widget)", function()
+    lockBtn = MakeButton(f, "U", 16, 13, nil, function()
         if not ns.db then return end
         local p = ns.db.profile
         p.locked = not p.locked
         ns.Print(p.locked and "Widget locked." or "Widget unlocked.")
         ns.Fire("SettingsChanged")
         ns.Fire("ConfigRefresh")
+        RefreshWidgetTip()
+    end)
+    lockBtn:HookScript("OnEnter", function(self)
+        ShowTip(self, GetLockBtnTipText())
     end)
     lockBtn:SetPoint("TOPRIGHT", pauseBtn, "TOPLEFT", -2, 0)
 
@@ -501,6 +524,7 @@ ns.RegisterInit(function()
     ns.On("SettingsChanged", function()
         ApplyLayout()
         Update()
+        RefreshWidgetTip()
     end)
     ns.On("CombatStart", Update)
     ns.On("CombatEnd", Update)

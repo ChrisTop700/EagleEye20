@@ -86,6 +86,9 @@ Both the blackout instruction (`LOOK X FEET AWAY`) and the default party message
 
 ## Planned Future Enhancements (Roadmap)
 
+- **Accent & Theme Color Customization:** Allow players to customize countdown state colors (Running teal, Prepare amber, Ready coral red) to match their custom UI theme or class colors.
+- **Widget Background & Border Styling:** Configurable mini-widget background color, opacity, and border styling options.
+- **Reset to Defaults Button:** A 1-click restore button in the options panel to reset all settings, schemes, and alerts back to factory default values.
 - **Tradeskill & Batch Crafting Detection:** Hook `UNIT_SPELLCAST_START` / `UNIT_SPELLCAST_STOP` to offer a `TAKE BREAK NOW` prompt during lengthy tradeskill crafting queues.
 - **Post-Break Micro-Exercise & Posture Routine (Optional):** Optional follow-up prompt/screen displayed *after* completing the 20-second eye rest (keeping the eye break dedicated to distance recovery), guiding through light neck/shoulder stretches and blinking resets.
 - **Hourly Health & Hydration Reminders:** Standalone or combined hourly prompt (every 60 minutes instead of every 20 minutes) encouraging drinking water, standing up, and posture checks.

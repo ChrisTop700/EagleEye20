@@ -110,6 +110,13 @@ ns.SafeRegister(frame, "UNIT_EXITED_VEHICLE")
 ns.SafeRegister(frame, "CINEMATIC_START")
 ns.SafeRegister(frame, "CINEMATIC_STOP")
 
+-- Taint diagnostics: ADDON_ACTION_BLOCKED is the event behind the
+-- "has been blocked from an action only available to the Blizzard UI"
+-- popup. Echoing it to chat the instant it fires shows which protected
+-- function was attempted, which is far more actionable than the popup.
+ns.SafeRegister(frame, "ADDON_ACTION_BLOCKED")
+ns.SafeRegister(frame, "ADDON_ACTION_FORBIDDEN")
+
 frame:SetScript("OnEvent", function(_, event, arg1)
     if event == "PLAYER_REGEN_DISABLED" then
         ns.Fire("CombatStart")
@@ -148,6 +155,15 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "PLAYER_FLAGS_CHANGED" then
         if arg1 == "player" or arg1 == nil then
             SyncAFK()
+        end
+    elseif event == "ADDON_ACTION_BLOCKED" or event == "ADDON_ACTION_FORBIDDEN" then
+        -- arg1 = addon name, arg2 = protected function/field attempted
+        if arg1 == AddonName and arg2 then
+            DEFAULT_CHAT_FRAME:AddMessage(
+                "|cffff3333EagleEye20 taint block:|r tried to call |cffffff00" .. tostring(arg2) .. "|r" ..
+                " (see tools/taint_debugging.md to trace it)")
+            ns.Log("TAINT_BLOCKED", tostring(arg2))
+            if ns.TaintBlockRecord then ns.TaintBlockRecord(arg2) end
         end
     elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_LOGIN" then
         SyncAFK()

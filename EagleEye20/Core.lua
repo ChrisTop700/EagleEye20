@@ -763,6 +763,34 @@ boot:SetScript("OnEvent", function(self, event, arg1)
     end
 end)
 
+-- Taint block history for /ee20 taint. Records every
+-- ADDON_ACTION_BLOCKED aimed at this addon during the session.
+ns.taintBlocks = {}
+local MAX_TAINT_BLOCKS = 20
+
+function ns.TaintBlockRecord(fnName)
+    table.insert(ns.taintBlocks, {
+        time = date("%H:%M:%S"),
+        fn = tostring(fnName or "?"),
+    })
+    while #ns.taintBlocks > MAX_TAINT_BLOCKS do
+        table.remove(ns.taintBlocks, 1)
+    end
+end
+
+local function PrintTaintReport()
+    local n = #ns.taintBlocks
+    if n == 0 then
+        ns.Print("No taint blocks recorded this session. The popup (if seen) came from another addon or an earlier session.")
+        return
+    end
+    ns.Print(n .. " taint block(s) this session:")
+    for _, b in ipairs(ns.taintBlocks) do
+        ns.Print("  [" .. b.time .. "] blocked call: " .. b.fn)
+    end
+    ns.Print("Enable /console taintLog 2, /reload, then check WoW Logs\\taint.log for the full call chain.")
+end
+
 local function PrintHelp()
     ns.Print("Commands:")
     ns.Print("  /ee20 start | pause | reset")
@@ -774,6 +802,7 @@ local function PrintHelp()
     ns.Print("  /ee20 widget | show  - show or hide the floating countdown widget")
     ns.Print("  /ee20 minimap  - show or hide the minimap button")
     ns.Print("  /ee20 panic  - force-clear the break overlay if it gets stuck")
+    ns.Print("  /ee20 taint  - show which protected calls were blocked this session")
     ns.Print("  /ee20 test  - 5 second test cycle")
 end
 
@@ -883,6 +912,8 @@ local function SlashHandler(msg)
             ns.Fire("ConfigRefresh")
             ns.Print("Minimap button " .. (p.showMinimap and "shown" or "hidden") .. ".")
         end
+    elseif cmd == "taint" then
+        PrintTaintReport()
     elseif cmd == "test" then
         ns.TestBreak()
     elseif cmd == "panic" or cmd == "dismiss" then

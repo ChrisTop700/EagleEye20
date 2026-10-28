@@ -1,11 +1,11 @@
 <Bindings>
-    <Binding name="EAGLEEYE20_CONFIRMSAFE" category="BINDING_HEADER_EAGLEEYE20">
+    <Binding name="EAGLEEYE20_CONFIRMSAFE" header="EAGLEEYE20">
         EagleEye20_ConfirmSafe_Binding()
     </Binding>
-    <Binding name="EAGLEEYE20_SNOOZE" category="BINDING_HEADER_EAGLEEYE20">
+    <Binding name="EAGLEEYE20_SNOOZE">
         EagleEye20_Snooze_Binding()
     </Binding>
-    <Binding name="EAGLEEYE20_PAUSERESUME" category="BINDING_HEADER_EAGLEEYE20">
+    <Binding name="EAGLEEYE20_PAUSERESUME">
         EagleEye20_PauseResume_Binding()
     </Binding>
 </Bindings>

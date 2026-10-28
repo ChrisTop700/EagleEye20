@@ -189,7 +189,9 @@ local function CreateBlackout()
         end
     end)
 
-    table.insert(UISpecialFrames, "EagleEye20Blackout")
+    -- Do NOT add to UISpecialFrames. CloseWindows() iterates UISpecialFrames
+    -- on every ESC keypress; reading an addon global frame there taints window
+    -- management. The overlay handles ESC directly via its OnKeyDown script.
 
     ns.Blackout = f
 end

@@ -181,7 +181,10 @@ local function CreateBlackout()
         end
     end)
 
-    table.insert(UISpecialFrames, "EagleEye20Blackout")
+    -- Do NOT add to UISpecialFrames. In modern WoW (Interface 16001 / 11.0+),
+    -- CloseWindows() iterates UISpecialFrames on every ESC keypress; reading an
+    -- addon global frame there taints UIParentPanelManager and ToggleGameMenu.
+    -- The overlay handles ESC directly via its OnKeyDown script while shown.
 
     ns.Blackout = f
 end

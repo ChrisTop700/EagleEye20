@@ -10,6 +10,8 @@ poisoned.
 
 | Location | Problem | Fix |
 |---|---|---|
+| `UI_Blackout.lua` — `UISpecialFrames` | `table.insert(UISpecialFrames, "EagleEye20Blackout")` caused Blizzard's `CloseWindows()` to read `_G["EagleEye20Blackout"]` on every ESC keypress (`UIParentPanelManager.lua:1109`), tainting `ToggleGameMenu` and causing `ADDON FORBIDDEN: SpellStopTargeting()` and `ClearTarget()`. | Removed `UISpecialFrames` registration; the blackout overlay already captures and handles ESC directly via `OnKeyDown`. |
+| `Bindings.xml` — binding category | `category="BINDING_HEADER_EAGLEEYE20"` tainted Blizzard's `Keybindings.lua:221` because headers are not valid categories. | Set `category="ADDONS"` and `header="EAGLEEYE20"`. |
 | `UI_Config.lua` — `ApplySafeKey` via `StaticPopup.OnAccept` | `SetBinding`/`SaveBindings` were called from the popup's `OnAccept`, which is **not** a hardware event. Binding-system taint breaks ESC and the game menu. | The overwrite confirm now stashes the key; the actual bind happens on the next physical click of the Safe Key button. |
 | `UI_Config.lua` — keybind capture listener | Listener never enabled its keyboard, and captured keys propagated into the secure key stream. | `EnableKeyboard(true)` on capture, `SetPropagateKeyboardInput(false)` to swallow the grabbed key. |
 | `UI_Config.lua` — `ns.OpenConfig` | `C_Timer.After(0.1, ...)` re-issued `Settings.OpenToCategory` from a timer callback — a non-secure context re-opening a secure panel right after ESC closed it. | Removed the deferred re-open. |

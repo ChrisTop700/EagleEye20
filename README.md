@@ -100,6 +100,10 @@ Both the blackout instruction (`LOOK X FEET AWAY`) and the default party message
   - Multi-profile management (e.g., "Raiding", "Leveling", "Crafting") with fast profile switching via slash command or dropdown.
   - LibDataBroker (LDB) data feed support for display in TitanPanel, ChocolateBar, and ElvUI bars.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
 ## License
 
 MIT - see `LICENSE`.

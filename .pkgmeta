@@ -11,3 +11,4 @@ ignore:
   - environment.yml
   - SPEC.md
   - VALIDATION.md
+  - CHANGELOG.md

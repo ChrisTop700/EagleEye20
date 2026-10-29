@@ -5,7 +5,7 @@
 <h1 align="center">Eagle Eye 20/20/20 (<code>EagleEye20</code>)</h1>
 
 <p align="center">
-  A combat-aware 20-20-20 eye strain timer for <strong>World of Warcraft 3.3.5a (Wrath of the Lich King / WoW Forever)</strong>.
+  A combat-aware 20-20-20 eye strain timer for <strong>World of Warcraft Classic Anniversary (The Burning Crusade)</strong>.
 </p>
 
 Every cycle the addon counts down your screen time, then asks you to confirm you are in a safe spot before it blacks out the screen for a 20 second eye break. Because it is built for an active MMO, the break never traps you mid-pull: combat cancels the blackout, AFK pauses the clock, and flight paths offer an early break.
@@ -76,7 +76,7 @@ Both the blackout instruction (`LOOK X FEET AWAY`) and the default party message
 
 ## Compatibility
 
-- Interface `16001` (WoW Forever). Built for the client's modern API: `BackdropTemplate`
+- Interface `20506` (WoW Classic Anniversary, TBC). Built for the client's modern API: `BackdropTemplate`
   frames, `IsInGroup`/`IsInRaid`, `Settings.RegisterCanvasLayoutCategory` options pages,
   and `UIPanelScrollFrameTemplate` scrolling. A throttled `OnUpdate` ticker drives the
   countdown, and legacy names (`strtrim`, `FauxScrollFrame*`, `math.atan2`,

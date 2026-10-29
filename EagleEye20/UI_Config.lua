@@ -842,7 +842,7 @@ local function CreateMainPanel()
 
     local verText = page:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     verText:SetPoint("TOPLEFT", page, "TOPLEFT", col1_x, -776)
-    verText:SetText(string.format("Eagle Eye 20/20/20 |cff00cc99v%s|r  |  WoW Forever (Interface 16001)", ns.version or "0.20.0-alpha"))
+    verText:SetText(string.format("Eagle Eye 20/20/20 |cff00cc99v%s|r  |  WoW Classic Anniversary (Interface 20506)", ns.version or "0.20.0-alpha-tbc"))
     verText:SetTextColor(0.55, 0.60, 0.65)
 
     local fixedFooter = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")

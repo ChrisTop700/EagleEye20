@@ -32,12 +32,13 @@ end
 _G["EagleEye20_PauseResume_Binding"] = EagleEye20_PauseResume_Binding
 
 ns.name = AddonName
-ns.version = "0.20.0-alpha"
+ns.version = "0.20.0-alpha-tbc"
 ns.MEDIA = "Interface\\AddOns\\EagleEye20\\Textures\\"
 
--- The client is a modern (Forever, interface 16001) build. Frames only get
--- SetBackdrop when they are created with the BackdropTemplate mixin, the old
--- InterfaceOptions panel container is gone, and group/AFK helpers changed.
+-- The client is WoW Classic Anniversary (TBC, interface 20506), a modern
+-- engine build. Frames only get SetBackdrop when they are created with the
+-- BackdropTemplate mixin, the legacy InterfaceOptions panel container is
+-- gone, and group/AFK helpers changed.
 function ns.Backdrop()
     return BackdropTemplateMixin and "BackdropTemplate" or nil
 end

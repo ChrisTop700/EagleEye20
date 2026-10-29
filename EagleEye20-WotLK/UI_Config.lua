@@ -57,9 +57,12 @@ local SOUND_ITEMS = {
 
 local SetSolidColor = ns.SetSolidColor
 
-StaticPopupDialogs = StaticPopupDialogs or {}
-StaticPopupDialogs["EAGLEEYE20_CONFIRM_OVERWRITE"] = {
-    text = "Key [%s] is already bound to:\n\"%s\"\n\nDo you want to overwrite it and bind to Safe Now?",
+-- Assign only our own key. The Blizzard-owned StaticPopupDialogs table is
+-- shared with secure popup code (including the ESC-close path), so never
+-- replace the table itself or touch Blizzard entries in it.
+if not StaticPopupDialogs then StaticPopupDialogs = {} end
+StaticPopupDialogs["EAGLEEYE20_CONFIRM_OVERWRITE"] = StaticPopupDialogs["EAGLEEYE20_CONFIRM_OVERWRITE"] or {
+    text = "Key [%s] is already bound to:\n\"%s\"\n\nOverwrite it for Safe Now? (Bindings apply after one more click.)",
     button1 = YES or "Yes",
     button2 = NO or "No",
     OnAccept = function(self)
@@ -712,6 +715,19 @@ local function CreateMainPanel()
         ns.Print("Safe Now bound to [" .. k .. "]")
     end
 
+    -- SetBinding/SaveBindings are allowed only from a genuine hardware event
+    -- (a button OnClick). StaticPopup OnAccept runs outside that secure
+    -- context, so calling them there taints the binding system and breaks
+    -- ESC / the game menu until the next reload. Stash the pending key and
+    -- bind it from the next trusted click instead.
+    local pendingSafeKey = nil
+    local function ApplyPendingSafeKey()
+        if not pendingSafeKey then return end
+        local k = pendingSafeKey
+        pendingSafeKey = nil
+        ApplySafeKey(k)
+    end
+
     local bindingListener = CreateFrame("Frame", nil, page)
     -- 3.3.5a only delivers OnKeyDown to frames with keyboard enabled (the
     -- modern client does this implicitly for shown frames).
@@ -719,17 +735,28 @@ local function CreateMainPanel()
     bindingListener:Hide()
 
     keybindBtn = MakePanelButton(page, GetSafeKeyText(), col3_x, -646, COL_W, function()
+        if pendingSafeKey then
+            ApplyPendingSafeKey()
+            return
+        end
         if bindingListener:IsShown() then
             bindingListener:Hide()
             keybindBtn:SetText(GetSafeKeyText())
             return
         end
         keybindBtn:SetText("Press key (ESC cancels)...")
+        bindingListener:EnableKeyboard(true)
         bindingListener:Show()
     end)
 
     bindingListener:SetScript("OnKeyDown", function(self, key)
         self:Hide()
+        self:EnableKeyboard(false)
+        -- Swallow the captured key so it cannot also fire whatever action the
+        -- player had bound to it while we are grabbing it.
+        if self.SetPropagateKeyboardInput then
+            pcall(self.SetPropagateKeyboardInput, self, false)
+        end
         if key == "ESCAPE" then
             keybindBtn:SetText(GetSafeKeyText())
             return
@@ -750,7 +777,9 @@ local function CreateMainPanel()
             local dialog = StaticPopup_Show("EAGLEEYE20_CONFIRM_OVERWRITE", fullKey, actionName)
             if dialog then
                 dialog.applyFunc = function()
-                    ApplySafeKey(fullKey)
+                    pendingSafeKey = fullKey
+                    keybindBtn:SetText("Click again to confirm [" .. fullKey .. "]")
+                    ns.Print("Click the Safe Key button again to finish binding [" .. fullKey .. "].")
                 end
                 dialog.cancelFunc = function()
                     keybindBtn:SetText(GetSafeKeyText())
@@ -762,6 +791,9 @@ local function CreateMainPanel()
         else
             ApplySafeKey(fullKey)
         end
+    end)
+    bindingListener:SetScript("OnHide", function(self)
+        self:EnableKeyboard(false)
     end)
     table.insert(refs, function()
         keybindBtn:SetText(GetSafeKeyText())

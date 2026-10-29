@@ -22,6 +22,7 @@ local EVENT_COLORS = {
     AUTO_PAUSE_AFK = "88aacc",
     PRESET_CHANGED = "88ddcc",
     SESSION_START = "88aacc",
+    TAINT_BLOCKED = "ff5555",
 }
 
 local DEFAULT_COLOR = "aaaaaa"

@@ -154,9 +154,9 @@ local function CreateBlackout()
 
     f:SetScript("OnKeyDown", function(self, key)
         if key == "ESCAPE" then
-            -- 3.3.5a has no SetPropagateKeyboardInput; ESC is also listed in
-            -- UISpecialFrames, so the frame closes itself and OnHide aborts
-            -- the break. Guard against a double-abort from both paths.
+            -- The overlay is not in UISpecialFrames, so ESC is handled here
+            -- only. Swallow it where the API exists so it cannot also reach
+            -- the secure GameMenu path.
             if self.SetPropagateKeyboardInput then
                 self:SetPropagateKeyboardInput(false)
             end

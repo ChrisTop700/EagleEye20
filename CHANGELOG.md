@@ -2,6 +2,18 @@
 
 All notable changes to Eagle Eye 20/20/20 are documented here.
 
+## 0.20.0-alpha-tbc (TBC Anniversary port)
+
+### Changed
+
+- **Target client** — ported to **WoW Classic Anniversary (The Burning Crusade)**, Interface `20506`. The addon's feature-detection layer (`ns.NewFrame` backdrop shim, `ns.InGroup`/`ns.InRaid`, `ns.IsAFK` polling, `Settings.*` options registration with `InterfaceOptions_*` fallbacks, `PlaySound` kit-ID handling) already covers this client's modern API surface, so no behavioral code changes were required.
+- Version strings bumped to `0.20.0-alpha-tbc` (TOC metadata, `ns.version`, options footer, log header).
+
+### Compatibility
+
+- WoW Classic Anniversary client (TBC), Interface `20506`.
+- No addon dependencies; SavedVariables remain `EagleEye20DB`.
+
 ## 0.20.0-alpha
 
 Cumulative changes since `0.10.0-beta`. (`0.11.0-alpha` was an intermediate build containing most of the feature work below.)
@@ -37,5 +49,5 @@ Cumulative changes since `0.10.0-beta`. (`0.11.0-alpha` was an intermediate buil
 
 ### Compatibility
 
-- WoW Forever client, Interface `16001`.
+- WoW Classic Anniversary client (TBC), Interface `20506`.
 - No addon dependencies; SavedVariables remain `EagleEye20DB`.

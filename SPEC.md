@@ -4,8 +4,8 @@
 - **Official Display Title:** `Eagle Eye 20/20/20`
 - **Technical Addon / Folder Name:** `EagleEye20`
 - **SavedVariables Identifier:** `EagleEye20DB`
-- **Target Client:** World of Warcraft Forever (modern client, Wrath-era content)
-- **Interface Version:** `16001`
+- **Target Client:** World of Warcraft Classic Anniversary (The Burning Crusade)
+- **Interface Version:** `20506`
 - **Language:** Lua 5.1 / WoW XML
 - **Core Purpose:** Implements the 20-20-20 eye strain prevention rule (every 20 minutes of screen time, look 20 feet away for 20 seconds) tailored for an active multiplayer MMO environment where players must confirm they are in a safe state before their screen blacks out.
 - **Timer Presets:** Ships with `20/20/20` (default), `30/30/20`, `45/45/20`, `60/60/20` and a `CUSTOM` scheme where the player enters their own work-minutes / look-away-feet / rest-seconds.
@@ -13,8 +13,8 @@
 ---
 
 ## 2. Client API Constraints (Strict Agent Instructions)
-This addon targets the **WoW Forever client, interface `16001`**, which is a modern API
-build, not vanilla 3.3.5a. Adhere to these rules:
+This addon targets the **WoW Classic Anniversary client (TBC), interface `20506`**, which is a
+modern API build, not vanilla 3.3.5a. Adhere to these rules:
 
 1. **Timers:** `C_Timer.After` / `NewTicker` exist. Long-running countdowns still use an
    `OnUpdate` accumulator so they survive without spawning timers per tick.
@@ -44,7 +44,7 @@ build, not vanilla 3.3.5a. Adhere to these rules:
 The addon must reside in a folder named `EagleEye20` and follow a modular, single-namespace table pattern (`local AddonName, ns = ...`):
 
     EagleEye20/
-    â”œâ”€â”€ EagleEye20.toc          # Title: Eagle Eye 20/20/20, Interface: 16001, SavedVariables: EagleEye20DB
+    â”œâ”€â”€ EagleEye20.toc          # Title: Eagle Eye 20/20/20, Interface: 20506, SavedVariables: EagleEye20DB
     â”œâ”€â”€ Core.lua                # Namespace init, SavedVariables defaults, state machine, slash commands
     â”œâ”€â”€ Events.lua              # WoW API event hooks (Combat, AFK, Taxi, Group status, Resting)
     â”œâ”€â”€ UI_Widget.lua           # Draggable mini-timer frame, controls (Start/Pause/Confirm/Snooze)
@@ -62,9 +62,9 @@ repository root; `tools/build_textures.py` regenerates the TGA textures from the
 
 ### `.toc` File Header Specification (`EagleEye20.toc`)
 
-    ## Interface: 16001
+    ## Interface: 20506
     ## Title: Eagle Eye |cff00cc9920/20/20|r
-    ## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WoW Forever.
+    ## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WoW Classic Anniversary (TBC).
     ## Author: Chris
     ## Version: 1.0.0
     ## SavedVariables: EagleEye20DB

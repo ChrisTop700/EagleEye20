@@ -1,3 +1,8 @@
+package-as: EagleEye20
+
+move-folders:
+  EagleEye20/EagleEye20: EagleEye20
+
 ignore:
   - assets
   - tools

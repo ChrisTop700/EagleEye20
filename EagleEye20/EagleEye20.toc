@@ -2,8 +2,8 @@
 ## Title: Eagle Eye |cff00cc9920/20/20|r
 ## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WoW Classic Anniversary (TBC).
 ## Author: Chris
-## Version: 0.20.0-alpha-tbc
-## X-Version: 0.20.0-alpha-tbc
+## Version: 0.20.1-alpha-tbc
+## X-Version: 0.20.1-alpha-tbc
 ## X-Category: Combat
 ## Category: Combat
 ## SavedVariables: EagleEye20DB

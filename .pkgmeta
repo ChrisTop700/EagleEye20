@@ -1,14 +1,15 @@
 package-as: EagleEye20
 
-move-folders:
-  EagleEye20/EagleEye20: EagleEye20
-
 ignore:
   - assets
   - tools
+  - .agents
   - .github
   - .gitignore
+  - .conda
   - environment.yml
+  - README.md
   - SPEC.md
   - VALIDATION.md
   - CHANGELOG.md
+  - EagleEye_Simulator.html

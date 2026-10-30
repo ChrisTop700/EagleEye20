@@ -33,8 +33,12 @@ jobs:
       - name: Package EagleEye20 Addon
         run: |
           TAG="${{ steps.vars.outputs.tag }}"
-          # Zip the EagleEye20 directory preserving folder structure for WoW Interface/AddOns
-          zip -r "EagleEye20-${TAG}.zip" EagleEye20 -x "*.git*"
+          # Stage addon files (root layout) into an EagleEye20/ folder for WoW Interface/AddOns
+          mkdir -p stage/EagleEye20
+          rsync -a --exclude-from=<(sed -n 's/^  - //p' .pkgmeta | sed 's#^#/#') \
+            --exclude='/.git' --exclude='/.pkgmeta' --exclude='/LICENSE' --exclude='/stage' --exclude='/*.zip' \
+            ./ stage/EagleEye20/
+          (cd stage && zip -r "../EagleEye20-${TAG}.zip" EagleEye20)
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

@@ -1,4 +1,4 @@
-## Interface: 16001, 20506, 120100
+## Interface: 16001, 20506, 120105
 ## Title: Eagle Eye |cff00cc9920/20/20|r
 ## Notes: Smart 20-20-20 eye strain timer with combat safety checks for WoW Forever, Classic Anniversary (TBC) and Retail.
 ## Author: Chris
